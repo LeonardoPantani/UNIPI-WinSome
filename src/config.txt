@@ -1,0 +1,9 @@
+#############################################################
+#
+# Questo è file di configurazione di WINSOME.
+# Puoi modificare tutti i parametri che vuoi dopo il "="
+# Puoi invece inserire commenti mettendo un "#" ad inizio riga
+#
+#############################################################
+string=ok
+number=420

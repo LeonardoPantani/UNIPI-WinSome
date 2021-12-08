@@ -6,8 +6,11 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.utils.ConfigManager;
+
 public class ServerMain {
     public static void main(String[] args) {
         System.out.println("E tutto ebbe inizio - server");
+        ConfigManager config = new ConfigManager();
     }
 }
