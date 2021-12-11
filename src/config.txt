@@ -5,5 +5,5 @@
 # Puoi invece inserire commenti mettendo un "#" ad inizio riga
 #
 #############################################################
-string=ok
-number=420
+server_address=localhost
+server_port=6789

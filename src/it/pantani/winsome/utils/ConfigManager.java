@@ -34,11 +34,16 @@ public class ConfigManager {
                     continue;
                 }
                 String[] conf_line = line.split("=", 2);
-                if(conf_line[1].length() == 0) {
-                    System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' con valore vuoto.");
-                } else {
-                    prefs.put(conf_line[0], conf_line[1]);
+                if(conf_line.length == 1) {
+                    System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' malformata.");
+                    continue;
                 }
+                if (conf_line[1].length() == 0) {
+                    System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' con valore vuoto.");
+                    break;
+                }
+
+                prefs.put(conf_line[0], conf_line[1]);
             }
         } catch(IOException e) {
             System.err.println("[!] Errore durante la lettura dal file di configurazione '" + FILE_PATH + "'.");
