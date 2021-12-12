@@ -6,6 +6,9 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.utils.PasswordManager;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -60,6 +63,15 @@ public class ConnectionHandler implements Runnable {
                             break;
                         }
 
+                        case "login": {
+                            if(arguments.length != 2) {
+                                out.println("Comando errato, usa: login <username> <password>");
+                                break;
+                            }
+                            login(arguments[0], arguments[1]);
+                            break;
+                        }
+
                         default: {
                             help(arguments);
                         }
@@ -80,6 +92,28 @@ public class ConnectionHandler implements Runnable {
             out.println("Non e' disponibile alcuna funzione di aiuto al momento (no args)");
         } else {
             out.println("Non e' disponibile alcuna funzione di aiuto al momento (con args)");
+        }
+    }
+
+    private void login(String username, String password) {
+        System.out.println("Sono qui");
+        boolean trovato = false;
+
+        for(WinSomeUser u: ServerMain.listaUtenti) {
+            if(u.getUsername().equalsIgnoreCase(username)) {
+                trovato = true;
+                if(PasswordManager.checkPSW(password, new String(u.getPassword()))) {
+                    out.println("login ok");
+                    break;
+                } else {
+                    out.println("password errata");
+                    break;
+                }
+            }
+        }
+
+        if(!trovato) {
+            out.println("utente non trovato");
         }
     }
 }

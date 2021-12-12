@@ -6,9 +6,16 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.rmi.WinSomeCallback;
+import it.pantani.winsome.rmi.WinSomeCallbackInterface;
+
 import java.io.IOException;
 import java.net.Socket;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class InputHandler implements Runnable {
     private boolean close = false;
@@ -57,8 +64,22 @@ public class InputHandler implements Runnable {
                     break;
                 }
 
+                case "listusers": {
+                    listUsers();
+                    break;
+                }
+
                 case "stopserver": {
                     stopServer();
+                    break;
+                }
+
+                case "testfeature": {
+                    if(arguments.length != 3) {
+                        System.err.println("> Utilizzo comando errato: testfeature addfollower/removefollower <username> <change>");
+                        break;
+                    }
+                    testfeature(arguments);
                     break;
                 }
 
@@ -116,6 +137,60 @@ public class InputHandler implements Runnable {
             }
         } else {
             System.out.println("(nessun client connesso)");
+        }
+    }
+
+    private void listUsers() {
+        int numUsers = ServerMain.listaUtenti.size();
+        ConcurrentLinkedQueue<String> user_tags_list;
+
+        System.out.println("> LISTA UTENTI REGISTRATI (" + numUsers + "):");
+        if(numUsers != 0) {
+            for(WinSomeUser u : ServerMain.listaUtenti) {
+                System.out.print("[#" + u.getId() + "] " + u.getUsername());
+                user_tags_list = u.getTags_list();
+                if(user_tags_list.size() != 0) {
+                    System.out.println("  " + user_tags_list);
+                } else {
+                    System.out.println("  (nessun tag specificato)");
+                }
+            }
+        } else {
+            System.out.println("(nessun utente registrato)");
+        }
+    }
+
+    private void testfeature(String[] arguments) {
+        switch(arguments[0]) {
+            case "addfollower": {
+                if(arguments.length != 3) {
+                    System.err.println("[!] Argomento non valido: testfeature addfollower <username> <change>");
+                    break;
+                }
+                try {
+                    WinSomeCallback.notifyFollowerUpdate(arguments[1], "+" + arguments[2]);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+
+            case "removefollower": {
+                if(arguments.length != 3) {
+                    System.err.println("[!] Argomento non valido: testfeature removefollower <username> <change>");
+                    break;
+                }
+                try {
+                    WinSomeCallback.notifyFollowerUpdate(arguments[1], "+" + arguments[2]);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+
+            default: {
+                System.err.println("[!] Uso comando errato: testfeature addfollower/removefollower <username> <change>");
+            }
         }
     }
 

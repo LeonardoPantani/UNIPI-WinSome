@@ -4,12 +4,12 @@
  * University of Pisa - Department of Computer Science
  */
 
-package it.pantani.winsome.methods;
+package it.pantani.winsome.rmi;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.List;
+import java.util.ArrayList;
 
 public interface WinSomeServiceInterface extends Remote {
-    int register(String username, String password, List<String> tags_list) throws RemoteException;
+    String register(String username, String password, ArrayList<String> tags_list) throws RemoteException;
 }
