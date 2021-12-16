@@ -16,13 +16,13 @@ public class NotifyEvent extends RemoteObject implements NotifyEventInterface {
     public void notificationEvent(String update) throws RemoteException {
         String follower;
         if(update.startsWith("+")) {
-            follower = update.substring(2);
+            follower = update.substring(1);
             ClientMain.listaFollower.add(follower);
-            System.out.println("[RMI]> Ha iniziato a seguirti: " + follower);
+            //System.out.println("[RMI]> Ha iniziato a seguirti: " + follower);
         } else if(update.startsWith("-")) {
-            follower = update.substring(2);
+            follower = update.substring(1);
             ClientMain.listaFollower.remove(follower);
-            System.out.println("[RMI]> Non ti segue piu': " + follower);
+            //System.out.println("[RMI]> Non ti segue piu': " + follower);
         } else {
             System.err.println("[!] Ricezione notifica non valida!");
         }

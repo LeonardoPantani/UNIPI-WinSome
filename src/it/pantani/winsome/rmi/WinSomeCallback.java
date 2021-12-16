@@ -11,7 +11,7 @@ import java.rmi.server.RemoteObject;
 import java.util.HashMap;
 
 public class WinSomeCallback extends RemoteObject implements WinSomeCallbackInterface {
-    private static HashMap<String, NotifyEventInterface> clients = new HashMap<>();
+    private static final HashMap<String, NotifyEventInterface> clients = new HashMap<>();
 
     @Override
     public void registerForCallback(String username, NotifyEventInterface clientInterface) throws RemoteException {
@@ -26,6 +26,7 @@ public class WinSomeCallback extends RemoteObject implements WinSomeCallbackInte
         clients.remove(username);
         System.out.println("[RMI]> Rimosso client dal callback.");
     }
+
 
     public static void notifyFollowerUpdate(String username, String change) throws RemoteException {
         if(clients.containsKey(username)) {

@@ -6,7 +6,7 @@
 
 package it.pantani.winsome;
 
-import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.entities.WinSomeSession;
 import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.rmi.WinSomeCallbackInterface;
 import it.pantani.winsome.rmi.WinSomeService;
@@ -24,14 +24,13 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ServerMain {
-    public static ConcurrentLinkedQueue<Socket> listaSocket = new ConcurrentLinkedQueue<>();
-    public static ConcurrentLinkedQueue<WinSomeUser> listaUtenti = new ConcurrentLinkedQueue<>();
+    public static ConfigManager config;
+    public static SocialManager social;
+    public static final ConcurrentLinkedQueue<Socket> listaSocket = new ConcurrentLinkedQueue<>();
+    public static final ConcurrentHashMap<String, WinSomeSession> listaSessioni = new ConcurrentHashMap<>();
 
     public static ServerSocket serverSocket;
     public static int server_port;
@@ -39,11 +38,15 @@ public class ServerMain {
     public static void main(String[] args) {
         System.out.println("> Server in fase di avvio...");
         System.out.println("> Lettura dati dal file di configurazione...");
-        ConfigManager config = new ConfigManager();
+        config = new ConfigManager();
 
-        System.out.println("> Caricamento utenti da json...");
+        System.out.println("> Inizializzazione social...");
+        social = new SocialManager();
+        System.out.println("> Social pronto.");
+
+        System.out.println("> Caricamento dati da json...");
         JsonManager jsonmng = new JsonManager();
-        jsonmng.load();
+        jsonmng.loadAll(social);
         System.out.println("> Caricamento json completato.");
 
         server_port = Integer.parseInt(config.getPreference("server_port"));
@@ -84,15 +87,20 @@ public class ServerMain {
         System.out.println("> Server in ascolto sulla porta " + server_port + ". Scrivi 'help' per una lista di comandi.");
 
         int i = 1;
+
+        try {
+            serverSocket = new ServerSocket(server_port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         while(true) {
             try {
-                serverSocket = new ServerSocket(server_port);
                 Socket a = serverSocket.accept();
                 listaSocket.add(a);
                 pool.submit(new ConnectionHandler(a, i));
                 i++;
             } catch(SocketException e) {
-                e.printStackTrace();
                 break;
             } catch(IOException ex) {
                 ex.printStackTrace();
@@ -114,6 +122,12 @@ public class ServerMain {
             } catch (IOException ignored) { }
         }
         System.out.println("> Handler connessioni chiusi.");
+
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // chiusura pool
         pool.shutdown();
@@ -138,7 +152,7 @@ public class ServerMain {
 
         // salvataggio dati persistente
         try {
-            jsonmng.save();
+            jsonmng.saveAll(social);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -12,4 +12,5 @@ import java.util.ArrayList;
 
 public interface WinSomeServiceInterface extends Remote {
     String register(String username, String password, ArrayList<String> tags_list) throws RemoteException;
+    ArrayList<String> initializeFollowerList(String username, String password) throws RemoteException; // TODO rendere migliore sta roba
 }

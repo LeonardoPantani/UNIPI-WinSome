@@ -14,24 +14,7 @@ public class PasswordManager {
 
     }
 
-    public static boolean checkPSW(String password, String hashed) {
-        return BCrypt.checkpw(password, hashed);
+    public static boolean checkPSW(String plaintext, String hashed) {
+        return BCrypt.checkpw(plaintext, hashed);
     }
-
-    /*
-    public static char[] getNextSalt() {
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "abcdefghijklmnopqrstuvwxyz" + "0123456789";
-        Random random = new SecureRandom();
-        int randomIndex, randomChar;
-
-        char[] salt = new char[16];
-        for(int i = 0; i < salt.length; i++) {
-            randomIndex = random.nextInt(alphabet.length());
-            randomChar = alphabet.charAt(randomIndex);
-            salt[i] = (char)randomChar;
-        }
-
-        return salt;
-    }
-     */
 }

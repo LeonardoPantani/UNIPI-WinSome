@@ -16,10 +16,10 @@ public class ConfigManager {
     private static final String FILE_PATH = "src/config.txt"; // path to configuration file
     private static final String DEFAULT_GETPREFERENCE = null; // default value for getPreference method
 
-    private BufferedReader reader;
     private final Preferences prefs = Preferences.userRoot();
 
     public ConfigManager() {
+        BufferedReader reader;
         try {
             reader = new BufferedReader(new FileReader(FILE_PATH));
         } catch(FileNotFoundException e) {
