@@ -42,7 +42,6 @@ public class ConfigManager {
                     System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' con valore vuoto.");
                     break;
                 }
-
                 prefs.put(conf_line[0], conf_line[1]);
             }
         } catch(IOException e) {

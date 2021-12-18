@@ -17,7 +17,7 @@ public class Utils {
         out.println(send);
     }
 
-    public static String receive(BufferedReader in) {
+    public static String receive(BufferedReader in) throws IOException {
         StringBuilder everything = new StringBuilder();
         try {
             String dato = in.readLine();
@@ -28,11 +28,13 @@ public class Utils {
                 return dato;
             }
             int i = -2;
-            while (i < l) {
-                everything.append((char)in.read());
+            while(i < l) {
+                everything.append((char) in.read());
                 i++;
             }
         } catch(IOException ignored) {}
-        return everything.substring(0, everything.length()-2);
+        if(everything.length() < 2) throw new IOException();
+
+        return everything.substring(0, everything.length() - 2);
     }
 }

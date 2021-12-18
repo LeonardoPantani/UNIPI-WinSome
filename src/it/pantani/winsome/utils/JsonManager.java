@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import it.pantani.winsome.SocialManager;
+import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeUser;
 
 import java.io.*;
@@ -25,6 +26,7 @@ public class JsonManager {
     private static final String user_data_path = "src/user_data.json"; // path to json file
     private static final String followers_data_path = "src/followers_data.json"; // path to json file
     private static final String following_data_path = "src/following_data.json"; // path to json file
+    private static final String posts_data_path = "src/posts_data_path.json"; // path to json file
 
     private final Gson gson;
     private JsonReader reader;
@@ -34,10 +36,12 @@ public class JsonManager {
         if(createFile(user_data_path) != 0) System.err.println("[!] Errore creazione file dati utente");
         if(createFile(followers_data_path) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
         if(createFile(following_data_path) != 0) System.err.println("[!] Errore creazione file relazione (following)");
+        if(createFile(posts_data_path) != 0) System.err.println("[!] Errore creazione file relazione (following)");
     }
 
     public void loadAll(SocialManager s) {
         loadUserData(s);
+        loadPostData(s);
         loadRelationsData(s);
     }
 
@@ -52,6 +56,19 @@ public class JsonManager {
             return;
         }
         s.setUserList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
+    }
+
+    public void loadPostData(SocialManager s) {
+        String input = getFromFile(posts_data_path);
+        if(input == null) return;
+
+        // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
+        Type listaDelMioOggettoClasse = new TypeToken<ConcurrentHashMap<Integer, WinSomePost>>() {}.getType();
+        if(input.equals("")) {
+            System.out.println("> File dati post vuoto.");
+            return;
+        }
+        s.setPostList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
     }
 
     public void loadRelationsData(SocialManager s) {
@@ -85,6 +102,8 @@ public class JsonManager {
 
         saveInFile(followers_data_path, s.getFollowersList());
         saveInFile(following_data_path, s.getFollowingList());
+
+        saveInFile(posts_data_path, s.getPostList());
     }
 
     public void saveInFile(String path, Object structure) throws IOException {

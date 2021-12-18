@@ -41,7 +41,7 @@ public class ServerMain {
         config = new ConfigManager();
 
         System.out.println("> Inizializzazione social...");
-        social = new SocialManager();
+        social = new SocialManager(config);
         System.out.println("> Social pronto.");
 
         System.out.println("> Caricamento dati da json...");
@@ -51,9 +51,6 @@ public class ServerMain {
 
         server_port = Integer.parseInt(config.getPreference("server_port"));
         ThreadPoolExecutor pool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-
-        Thread in_handler = new Thread(new InputHandler());
-        in_handler.start();
 
         // rmi register
         WinSomeService obj = new WinSomeService();
@@ -86,8 +83,10 @@ public class ServerMain {
 
         System.out.println("> Server in ascolto sulla porta " + server_port + ". Scrivi 'help' per una lista di comandi.");
 
-        int i = 1;
+        Thread in_handler = new Thread(new InputHandler());
+        in_handler.start();
 
+        int i = 1;
         try {
             serverSocket = new ServerSocket(server_port);
         } catch (IOException e) {

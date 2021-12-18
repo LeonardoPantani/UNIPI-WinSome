@@ -195,6 +195,33 @@ public class ClientMain {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
                         }
+                        case "post" -> {
+                            if(arguments.length < 2) {
+                                System.err.println("[!] Comando errato, usa: post <titolo>|<contenuto>");
+                                break;
+                            }
+                            String req_body = raw_request.substring(5);
+                            String[] text = req_body.split("\\|");
+                            if(text.length != 2) {
+                                System.err.println("[!] Comando errato, usa: post <titolo>|<contenuto>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + in.readLine());
+                        }
+
+                        case "blog" -> {
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
+                        }
+                        case "rate" -> {
+                            if(arguments.length != 2) {
+                                System.err.println("[!] Comando errato, usa: rate <id post> <+1/-1>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + in.readLine());
+                        }
                         default -> {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());

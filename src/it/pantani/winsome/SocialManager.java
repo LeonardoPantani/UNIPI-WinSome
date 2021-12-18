@@ -6,20 +6,71 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.exceptions.*;
+import it.pantani.winsome.utils.ConfigManager;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocialManager {
+    private final ConfigManager config;
+
+    private final AtomicInteger lastID;
+
     private ConcurrentHashMap<String, WinSomeUser> userList;
     private ConcurrentHashMap<String, ArrayList<String>> followersList;
     private ConcurrentHashMap<String, ArrayList<String>> followingList; // ridondanza
+    private ConcurrentHashMap<Integer, WinSomePost> postList;
 
-    public SocialManager() {
+    public SocialManager(ConfigManager config) {
+        this.config = config;
         userList = new ConcurrentHashMap<>();
         followersList = new ConcurrentHashMap<>();
         followingList = new ConcurrentHashMap<>();
+        postList = new ConcurrentHashMap<>();
+
+        lastID = new AtomicInteger(Integer.parseInt(config.getPreference("last_post_id")));
+    }
+
+    public int createPost(String username, String post_title, String post_content) throws PostTitleTooLongException, PostContentTooLongException, UserNotFoundException {
+        if(!userList.containsKey(username)) throw new UserNotFoundException();
+        if(post_title.length() > Integer.parseInt(config.getPreference("post_max_title_length"))) throw new PostTitleTooLongException();
+        if(post_content.length() > Integer.parseInt(config.getPreference("post_max_content_length"))) throw new PostContentTooLongException();
+
+        int idpost = lastID.getAndIncrement();
+        postList.putIfAbsent(idpost, new WinSomePost(idpost, username, post_title, post_content));
+        return idpost;
+    }
+
+    public void ratePost(String username, int post_id, int value) throws UserNotFoundException, InvalidVoteException, PostNotFoundException, InvalidOperationException, OwnPostVoteException {
+        if(!userList.containsKey(username)) throw new UserNotFoundException();
+        if(value != -1 && value != 1) throw new InvalidVoteException();
+        WinSomePost toRate = postList.get(post_id);
+        if(toRate == null) throw new PostNotFoundException();
+        if(toRate.getAuthor().equals(username)) throw new OwnPostVoteException();
+        if(toRate.findVoteByUser(username) != null) throw new InvalidOperationException();
+
+        toRate.addVote(username, value);
+    }
+
+    public ArrayList<WinSomePost> getUserPosts(String username) {
+        ArrayList<WinSomePost> ret = null;
+
+        for (WinSomePost p : postList.values()) {
+            if(p.getAuthor().equals(username)) {
+                if(ret == null) ret = new ArrayList<>();
+                ret.add(p);
+            }
+        }
+
+        return ret;
+    }
+
+    public void setPostList(ConcurrentHashMap<Integer, WinSomePost> postList) {
+        this.postList = postList;
     }
 
     public void setUserList(ConcurrentHashMap<String, WinSomeUser> userList) {
@@ -32,6 +83,10 @@ public class SocialManager {
 
     public void setFollowingList(ConcurrentHashMap<String, ArrayList<String>> followingList) {
         this.followingList = followingList;
+    }
+
+    public ConcurrentHashMap<Integer, WinSomePost> getPostList() {
+        return postList;
     }
 
     public ConcurrentHashMap<String, ArrayList<String>> getFollowersList() {

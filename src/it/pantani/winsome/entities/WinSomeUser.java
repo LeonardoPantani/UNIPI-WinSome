@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class WinSomeUser {
     private final String username;
-    private final char[] password;
+    private final String password;
     private final ConcurrentLinkedQueue<String> tags_list = new ConcurrentLinkedQueue<>();
     private final long creationDate;
 

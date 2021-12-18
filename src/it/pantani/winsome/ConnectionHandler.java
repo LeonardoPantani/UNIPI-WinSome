@@ -6,8 +6,10 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeSession;
 import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.utils.Utils;
 
@@ -63,9 +65,6 @@ public class ConnectionHandler implements Runnable {
                     System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
                     switch (request) {
-                        case "help" -> {
-                            help();
-                        }
                         case "login" -> {
                             if (arguments.length != 2) {
                                 out.println("Comando errato, usa: login <username> <password>");
@@ -97,6 +96,29 @@ public class ConnectionHandler implements Runnable {
                             }
                             unfollow(arguments[0]);
                         }
+                        case "post" -> {
+                            String req_body = raw_request.substring(5);
+                            String[] text = req_body.split("\\|");
+                            if(text.length != 2) {
+                                out.println("Comando errato, usa: post <titolo>|<contenuto>");
+                                break;
+                            }
+                            post(text[0], text[1]);
+                        }
+                        case "blog" -> {
+                            blog();
+                        }
+                        case "rate" -> {
+                            if(arguments.length != 2) {
+                                out.println("Comando errato, usa: rate <id post> <+1/-1>");
+                                break;
+                            }
+                            try {
+                                rate(Integer.parseInt(arguments[0]), Integer.parseInt(arguments[1]));
+                            } catch(NumberFormatException e) {
+                                out.println("Comando errato, usa: rate <id post> <+1/-1>");
+                            }
+                        }
                         default -> invalidcmd();
                     }
                 } else {
@@ -109,10 +131,6 @@ public class ConnectionHandler implements Runnable {
         ServerMain.listaSocket.remove(clientSocket);
         if(clientSession != null) ServerMain.listaSessioni.remove(clientSession.getUsername());
         System.out.println("[CH #" + chCode + "]> Collegamento col client " + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + " terminato.");
-    }
-
-    private void help() {
-        out.println("nessuna funzione di aiuto implementata al momento");
     }
 
     private void invalidcmd() {
@@ -259,6 +277,83 @@ public class ConnectionHandler implements Runnable {
             WinSomeCallback.notifyFollowerUpdate(username, "-" + current_user);
         } catch (RemoteException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void post(String post_title, String post_content) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        try {
+            int new_post_id = s.createPost(current_user, post_title, post_content);
+            out.println("post pubblicato (#" + new_post_id + ")");
+        } catch(PostTitleTooLongException e) {
+            out.println("titolo del post troppo lungo");
+        } catch(PostContentTooLongException e) {
+            out.println("contenuto del post troppo lungo");
+        } catch(UserNotFoundException e) {
+            out.println("utente non trovato");
+        }
+    }
+
+    private void blog() {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        ArrayList<WinSomePost> user_posts = s.getUserPosts(current_user);
+        if(user_posts == null) {
+            out.println("il tuo blog e' vuoto, pubblica qualcosa!");
+            return;
+        }
+        String ret = "BLOG DI " + current_user + ":\n";
+        for(WinSomePost p : user_posts) {
+            int up = p.getUpvotes(), down = p.getDownvotes();
+
+            ret += "[Post #" + p.getPostID() + "]\n";
+            ret += "Titolo: " + p.getPostTitle() + "\n";
+            ret += "Contenuto: " + p.getPostContent() + "\n";
+            ret += "Voti: " + up + " ";
+            if(up == 1) ret += "positivo"; else ret += "positivi";
+            ret += ", " + down + " ";
+            if(down == 1) ret += "negativo"; else ret += "negativi";
+            ret += "\n";
+        }
+        Utils.send(out, ret);
+    }
+
+    private void rate(int post_id, int vote) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        try {
+            s.ratePost(current_user, post_id, vote);
+            if(vote == 1) {
+                out.println("hai messo +1 al post #" + post_id);
+            } else {
+                out.println("hai messo -1 al post #" + post_id);
+            }
+        } catch(UserNotFoundException e) {
+            e.printStackTrace();
+        } catch(InvalidVoteException e) {
+            out.println("voto non valido");
+        } catch(PostNotFoundException e) {
+            out.println("impossibile trovare post con id #" + post_id);
+        } catch(InvalidOperationException e) {
+            out.println("hai gia' votato questo post");
+        } catch(OwnPostVoteException e) {
+            out.println("non puoi votare un tuo stesso post");
         }
     }
 

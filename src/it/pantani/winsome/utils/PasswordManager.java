@@ -9,8 +9,8 @@ package it.pantani.winsome.utils;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 public class PasswordManager {
-    public static char[] hashPassword(String password) {
-        return BCrypt.hashpw(password, BCrypt.gensalt()).toCharArray();
+    public static String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
 
     }
 

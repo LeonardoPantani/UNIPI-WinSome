@@ -1,8 +1,11 @@
-#############################################################
+last_post_id=0
+###############################################################################
 #
 # Questo è file di configurazione di WINSOME.
-# Puoi modificare tutti i parametri che vuoi dopo il "="
+# I parametri qui sotto dopo il "=" sono modificabili.
 # Puoi invece inserire commenti mettendo un "#" ad inizio riga
 #
-#############################################################
+###############################################################################
 server_port=6789
+post_max_title_length=20
+post_max_content_length=500

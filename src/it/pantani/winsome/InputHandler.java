@@ -27,6 +27,7 @@ public class InputHandler implements Runnable {
         in = new Scanner(System.in);
 
         while(!close) {
+            System.out.print("> ");
             String raw_request = in.nextLine();
             String[] temp = raw_request.split(" ");
 
