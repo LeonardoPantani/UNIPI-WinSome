@@ -67,11 +67,19 @@ public class ServerMain {
         try {
             WinSomeServiceInterface stub = (WinSomeServiceInterface) UnicastRemoteObject.exportObject(obj, 0);
 
-            LocateRegistry.createRegistry(1099);
-            Registry registry = LocateRegistry.getRegistry(1099);
+            int rmi_port;
+            try {
+                rmi_port = Integer.parseInt(config.getPreference("rmi_server_port"));
+            } catch(NumberFormatException e) {
+                System.err.println("[!] Porta server RMI non valida.");
+                return;
+            }
+
+            LocateRegistry.createRegistry(rmi_port);
+            Registry registry = LocateRegistry.getRegistry(rmi_port);
             registry.bind("winsome-server", stub);
 
-            System.out.println("> RMI pronto.");
+            System.out.println("> RMI pronto sulla porta " + rmi_port + ".");
         } catch (RemoteException | AlreadyBoundException e) {
             e.printStackTrace();
         }
@@ -81,8 +89,16 @@ public class ServerMain {
         try {
             WinSomeCallbackInterface stub = (WinSomeCallbackInterface) UnicastRemoteObject.exportObject(callbackobj, 0);
 
-            LocateRegistry.createRegistry(1100);
-            Registry registry = LocateRegistry.getRegistry(1100);
+            int rmi_callback_port;
+            try {
+                rmi_callback_port = Integer.parseInt(config.getPreference("rmi_callback_client_port"));
+            } catch(NumberFormatException e) {
+                System.err.println("[!] Porta RMI callback client non valida.");
+                return;
+            }
+
+            LocateRegistry.createRegistry(rmi_callback_port);
+            Registry registry = LocateRegistry.getRegistry(rmi_callback_port);
             registry.bind("winsome-server-callback", stub);
 
             System.out.println("> RMI Callback pronto.");

@@ -30,24 +30,26 @@ import java.util.Scanner;
 public class ClientMain {
     public static String server_address = "localhost";
     public static int server_port = 6789;
+    public static int server_rmi_port = 1099;
+    public static int client_rmi_callback_port = 1100;
 
     public static ArrayList<String> listaFollower = null;
 
     public static void main(String[] args) {
-        if(args.length == 2) {
+        if(args.length >= 2 && args.length < 5) {
             try {
                 server_address = args[0];
                 server_port = Integer.parseInt(args[1]);
-
-                if(server_port <= 0 || server_port >= 65535) {
-                    System.err.println("[!] Numero porta non valido!");
-                }
+                if(args.length >= 3) server_rmi_port = Integer.parseInt(args[2]);
+                if(args.length >= 4) client_rmi_callback_port = Integer.parseInt(args[3]);
             } catch(NumberFormatException e) {
-                System.err.println("[!] Numero porta non fornito.");
+                System.err.println("[!] Numero fornito non valido. Motivo: " + e.getLocalizedMessage());
             }
         }
         System.out.println("> Indirizzo server: " + server_address);
         System.out.println("> Porta server: " + server_port);
+        System.out.println("> Porta RMI server: " + server_rmi_port);
+        System.out.println("> Porta RMI callback client: " + client_rmi_callback_port);
 
         Socket socket;
         Scanner lettore = new Scanner(System.in);
@@ -78,13 +80,10 @@ public class ClientMain {
             Registry registry;
             WinSomeServiceInterface stub = null;
             try {
-                registry = LocateRegistry.getRegistry(server_address, 1099);
+                registry = LocateRegistry.getRegistry(server_address, server_rmi_port);
                 stub = (WinSomeServiceInterface) registry.lookup("winsome-server");
             } catch (RemoteException | NotBoundException e) {
-                e.printStackTrace();
-            }
-            if(stub == null) {
-                System.err.println("> Errore stub!");
+                System.err.println("[!] Errore RMI. Motivo: " + e.getLocalizedMessage());
                 return;
             }
 
@@ -133,15 +132,12 @@ public class ClientMain {
                                 username = arguments[0];
                                 // registrazione callback
                                 try {
-                                    Registry callbackregistry = LocateRegistry.getRegistry(server_address, 1100);
+                                    Registry callbackregistry = LocateRegistry.getRegistry(server_address, client_rmi_callback_port);
                                     server = (WinSomeCallbackInterface) callbackregistry.lookup("winsome-server-callback");
                                     callbackobj = new NotifyEvent();
                                     callbackstub = (NotifyEventInterface) UnicastRemoteObject.exportObject(callbackobj, 0);
-                                } catch (Exception exception) {
-                                    exception.printStackTrace();
-                                }
-                                if (server == null) {
-                                    System.err.println("> Errore stub callback!");
+                                } catch (Exception e) {
+                                    System.err.println("[!] Errore RMI callback. Motivo: " + e.getLocalizedMessage());
                                     break;
                                 }
 

@@ -24,6 +24,8 @@ public class ConfigManager {
             OutputStream out = new FileOutputStream(FOLDER_NAME+"/"+FILE_PATH);
             prop = new Properties();
             prop.setProperty("server_port", "6789");
+            prop.setProperty("rmi_server_port", "1099");
+            prop.setProperty("rmi_callback_client_port", "1100");
             prop.setProperty("post_max_title_length", "20");
             prop.setProperty("post_max_content_length", "500");
             prop.setProperty("last_post_id", "0");
