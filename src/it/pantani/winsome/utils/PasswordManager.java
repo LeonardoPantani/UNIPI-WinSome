@@ -11,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 public class PasswordManager {
     public static String hashPassword(String password) {
         return BCrypt.hashpw(password, BCrypt.gensalt());
-
     }
 
     public static boolean checkPSW(String plaintext, String hashed) {

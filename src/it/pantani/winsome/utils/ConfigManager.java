@@ -6,56 +6,63 @@
 
 package it.pantani.winsome.utils;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.prefs.Preferences;
+import java.io.*;
+import java.util.Properties;
 
 public class ConfigManager {
-    private static final String FILE_PATH = "src/config.txt"; // path to configuration file
+    private static final String FOLDER_NAME = "data"; // name of folder
+    private static final String FILE_PATH = "config.properties"; // path to configuration file
     private static final String DEFAULT_GETPREFERENCE = null; // default value for getPreference method
+    private static final String CONFIG_COMMENT = "#########################################################################\n Questo è file di configurazione di WINSOME.\n I parametri qui sotto dopo il '=' sono modificabili.\n Puoi invece inserire commenti mettendo un '#' all'inizio della riga\n##########################################################################";
 
-    private final Preferences prefs = Preferences.userRoot();
+    private final Properties prop;
 
-    public ConfigManager() {
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(FILE_PATH));
-        } catch(FileNotFoundException e) {
-            System.err.println("[!] File di configurazione '" + FILE_PATH + "' non trovato.");
-            return;
-        }
-
-        String line;
-        try {
-            while ((line = reader.readLine()) != null) {
-                if(line.charAt(0) == '#') {
-                    continue;
-                }
-                String[] conf_line = line.split("=", 2);
-                if(conf_line.length == 1) {
-                    System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' malformata.");
-                    continue;
-                }
-                if (conf_line[1].length() == 0) {
-                    System.err.println("[!] Opzione di configurazione '" + conf_line[0] + "' con valore vuoto.");
-                    break;
-                }
-                prefs.put(conf_line[0], conf_line[1]);
-            }
-        } catch(IOException e) {
-            System.err.println("[!] Errore durante la lettura dal file di configurazione '" + FILE_PATH + "'.");
+    public ConfigManager() throws IOException {
+        File f = new File(System.getProperty("user.dir"), FOLDER_NAME+"/"+FILE_PATH);
+        if(!f.exists()) {
+            boolean ignored = new File(FOLDER_NAME).mkdirs(); // sennò genera un warning
+            OutputStream out = new FileOutputStream(FOLDER_NAME+"/"+FILE_PATH);
+            prop = new Properties();
+            prop.setProperty("server_port", "6789");
+            prop.setProperty("post_max_title_length", "20");
+            prop.setProperty("post_max_content_length", "500");
+            prop.setProperty("last_post_id", "0");
+            prop.store(out, CONFIG_COMMENT);
+            out.close();
+        } else {
+            InputStream in = new FileInputStream(FOLDER_NAME+"/"+FILE_PATH);
+            prop = new Properties();
+            prop.load(in);
+            in.close();
         }
     }
 
     public String getPreference(String preference_name) {
-        return prefs.get(preference_name, DEFAULT_GETPREFERENCE);
+        if(prop == null) return null;
+        return prop.getProperty(preference_name, DEFAULT_GETPREFERENCE);
     }
 
-    public static void printStringArray(String[] a) { // temporary method used for debugging
-        for (int i = 0; i < a.length; i++) {
-            System.out.println(i + ") '" + a[i] + "' [LENGTH: " + a[i].length() + "]");
+    public void saveLastPostID(int updated) {
+        OutputStream out = null;
+        try {
+            out = new FileOutputStream(FOLDER_NAME+"/"+FILE_PATH);
+        } catch(FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        if(out == null) {
+            System.err.println("> Impossibile salvare last_post_id");
+            return;
+        }
+        prop.setProperty("last_post_id", String.valueOf(updated));
+        try {
+            prop.store(out, CONFIG_COMMENT);
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            out.close();
+        } catch(IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -38,10 +38,20 @@ public class ServerMain {
     public static void main(String[] args) {
         System.out.println("> Server in fase di avvio...");
         System.out.println("> Lettura dati dal file di configurazione...");
-        config = new ConfigManager();
+        try {
+            config = new ConfigManager();
+        } catch(IOException e) {
+            System.err.println("[!] Lettura fallita. Motivo: " + e.getLocalizedMessage());
+            return;
+        }
 
         System.out.println("> Inizializzazione social...");
-        social = new SocialManager(config);
+        try {
+            social = new SocialManager(config);
+        } catch(IOException e) {
+            System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
+            return;
+        }
         System.out.println("> Social pronto.");
 
         System.out.println("> Caricamento dati da json...");
@@ -152,6 +162,7 @@ public class ServerMain {
         // salvataggio dati persistente
         try {
             jsonmng.saveAll(social);
+            social.close(config);
         } catch (IOException e) {
             e.printStackTrace();
         }

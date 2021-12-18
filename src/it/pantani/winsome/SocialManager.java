@@ -11,6 +11,7 @@ import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.utils.ConfigManager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,14 +26,30 @@ public class SocialManager {
     private ConcurrentHashMap<String, ArrayList<String>> followingList; // ridondanza
     private ConcurrentHashMap<Integer, WinSomePost> postList;
 
-    public SocialManager(ConfigManager config) {
+    public SocialManager(ConfigManager config) throws IOException {
         this.config = config;
         userList = new ConcurrentHashMap<>();
         followersList = new ConcurrentHashMap<>();
         followingList = new ConcurrentHashMap<>();
         postList = new ConcurrentHashMap<>();
 
-        lastID = new AtomicInteger(Integer.parseInt(config.getPreference("last_post_id")));
+        // elaborazione last_post_id
+        String id_toParse = config.getPreference("last_post_id");
+        if(id_toParse == null) { // caricamento config fallito
+            throw new IOException("id proprieta' nullo");
+        }
+        int id_parsed;
+        try {
+            id_parsed = Integer.parseInt(id_toParse);
+        } catch(NumberFormatException e) {
+            throw new IOException("numero non valido");
+        }
+        if(id_parsed < 0) throw new IOException("numero negativo");
+        lastID = new AtomicInteger(id_parsed);
+    }
+
+    public void close(ConfigManager config) {
+        config.saveLastPostID(lastID.intValue());
     }
 
     public int createPost(String username, String post_title, String post_content) throws PostTitleTooLongException, PostContentTooLongException, UserNotFoundException {

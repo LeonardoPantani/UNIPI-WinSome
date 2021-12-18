@@ -23,20 +23,22 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class JsonManager {
-    private static final String user_data_path = "src/user_data.json"; // path to json file
-    private static final String followers_data_path = "src/followers_data.json"; // path to json file
-    private static final String following_data_path = "src/following_data.json"; // path to json file
-    private static final String posts_data_path = "src/posts_data_path.json"; // path to json file
+    private static final String FOLDER_NAME = "data"; // name of folder
+
+    private static final String USER_DATA_PATH = "user_data.json"; // path to json file
+    private static final String FOLLOWERS_DATA_PATH = "followers_data.json"; // path to json file
+    private static final String FOLLOWING_DATA_PATH = "following_data.json"; // path to json file
+    private static final String POSTS_DATA_PATH = "posts_data.json"; // path to json file
 
     private final Gson gson;
     private JsonReader reader;
 
     public JsonManager() {
         gson = new Gson();
-        if(createFile(user_data_path) != 0) System.err.println("[!] Errore creazione file dati utente");
-        if(createFile(followers_data_path) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
-        if(createFile(following_data_path) != 0) System.err.println("[!] Errore creazione file relazione (following)");
-        if(createFile(posts_data_path) != 0) System.err.println("[!] Errore creazione file relazione (following)");
+        if(createFile(FOLDER_NAME+"/"+ USER_DATA_PATH) != 0) System.err.println("[!] Errore creazione file dati utente");
+        if(createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
+        if(createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
+        if(createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
     }
 
     public void loadAll(SocialManager s) {
@@ -46,7 +48,7 @@ public class JsonManager {
     }
 
     public void loadUserData(SocialManager s) {
-        String input = getFromFile(user_data_path);
+        String input = getFromFile(FOLDER_NAME+"/"+ USER_DATA_PATH);
         if(input == null) return;
 
         // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
@@ -59,7 +61,7 @@ public class JsonManager {
     }
 
     public void loadPostData(SocialManager s) {
-        String input = getFromFile(posts_data_path);
+        String input = getFromFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH);
         if(input == null) return;
 
         // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
@@ -73,7 +75,7 @@ public class JsonManager {
 
     public void loadRelationsData(SocialManager s) {
         // FOLLOWERS
-        String input = getFromFile(followers_data_path);
+        String input = getFromFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH);
         if(input != null) {
             if(input.equals("")) {
                 System.out.println("> File dati relazioni (followers) vuoto.");
@@ -85,7 +87,7 @@ public class JsonManager {
         }
 
         // FOLLOWING
-        input = getFromFile(following_data_path);
+        input = getFromFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH);
         if(input != null) {
             if(input.equals("")) {
                 System.out.println("> File dati relazioni (following) vuoto.");
@@ -98,15 +100,15 @@ public class JsonManager {
     }
 
     public void saveAll(SocialManager s) throws IOException {
-        saveInFile(user_data_path, s.getUserList());
+        saveInFile(FOLDER_NAME+"/"+ USER_DATA_PATH, s.getUserList());
 
-        saveInFile(followers_data_path, s.getFollowersList());
-        saveInFile(following_data_path, s.getFollowingList());
+        saveInFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH, s.getFollowersList());
+        saveInFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH, s.getFollowingList());
 
-        saveInFile(posts_data_path, s.getPostList());
+        saveInFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH, s.getPostList());
     }
 
-    public void saveInFile(String path, Object structure) throws IOException {
+    private void saveInFile(String path, Object structure) throws IOException {
         String toSave = gson.toJson(structure);
 
         // --- scrivo dati sul canale (file) - NIO
@@ -169,6 +171,8 @@ public class JsonManager {
     }
 
     private int createFile(String path) {
+        boolean ignored = new File(FOLDER_NAME).mkdirs(); // sennò genera un warning
+
         try {
             File f = new File(path);
             if(!f.exists() && !f.createNewFile()) {

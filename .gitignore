@@ -4,3 +4,7 @@
 .idea/
 out/
 user_data.json
+followers_data.json
+following_data.json
+posts_data.json
+config.properties
