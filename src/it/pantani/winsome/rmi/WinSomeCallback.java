@@ -17,14 +17,14 @@ public class WinSomeCallback extends RemoteObject implements WinSomeCallbackInte
     public void registerForCallback(String username, NotifyEventInterface clientInterface) throws RemoteException {
         if(!clients.containsKey(username)) {
             clients.put(username, clientInterface);
-            System.out.println("[RMI]> Nuovo client registrato al callback.");
+            //System.out.println("[RMI]> Nuovo client registrato al callback.");
         }
     }
 
     @Override
     public void unregisterForCallback(String username) throws RemoteException {
         clients.remove(username);
-        System.out.println("[RMI]> Rimosso client dal callback.");
+        //System.out.println("[RMI]> Rimosso client dal callback.");
     }
 
 

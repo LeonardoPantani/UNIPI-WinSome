@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.rmi.ConnectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -35,6 +34,7 @@ public class ClientMain {
 
     public static ArrayList<String> listaFollower = null;
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     public static void main(String[] args) {
         if(args.length >= 2 && args.length < 5) {
             try {
@@ -55,7 +55,7 @@ public class ClientMain {
         Scanner lettore = new Scanner(System.in);
 
         WinSomeCallbackInterface server = null;
-        NotifyEventInterface callbackstub = null;
+        NotifyEventInterface callbackstub;
         NotifyEventInterface callbackobj = null;
         String username = null;
         String raw_request = "";
@@ -78,7 +78,7 @@ public class ClientMain {
 
             // RMI (register)
             Registry registry;
-            WinSomeServiceInterface stub = null;
+            WinSomeServiceInterface stub;
             try {
                 registry = LocateRegistry.getRegistry(server_address, server_rmi_port);
                 stub = (WinSomeServiceInterface) registry.lookup("winsome-server");
@@ -157,8 +157,13 @@ public class ClientMain {
                             System.out.println("[Server]> " + a);
                             if (server != null && a.equalsIgnoreCase("logout effettuato")) {
                                 server.unregisterForCallback(username);
+                                UnicastRemoteObject.unexportObject(callbackobj, false);
                                 username = null;
                             }
+                        }
+                        case "listusers" -> {
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
                         }
                         case "listfollowers" -> {
                             if (listaFollower == null) {
@@ -218,6 +223,34 @@ public class ClientMain {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
                         }
+                        case "showfeed" -> {
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
+                        }
+                        case "showpost" -> {
+                            if(arguments.length != 1) {
+                                System.err.println("[!] Comando errato, usa: showpost <id post>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
+                        }
+                        case "comment" -> {
+                            if(arguments.length < 2) {
+                                System.err.println("[!] Comando errato, usa: comment <id post> <commento>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + in.readLine());
+                        }
+                        case "delete" -> {
+                            if(arguments.length != 1) {
+                                System.err.println("[!] Comando errato, usa: delete <id post>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + in.readLine());
+                        }
                         default -> {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
@@ -239,12 +272,10 @@ public class ClientMain {
             if (server != null && callbackobj != null) {
                 if(username != null)
                     server.unregisterForCallback(username);
+
                 UnicastRemoteObject.unexportObject(callbackobj, false);
             }
-        } catch (ConnectException ignored) {} catch (RemoteException e) {
-            e.printStackTrace();
-        }
-
+        } catch (RemoteException ignored) {}
         System.out.println("> Terminazione client.");
     }
 }

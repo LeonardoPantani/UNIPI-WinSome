@@ -14,9 +14,10 @@ import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static it.pantani.winsome.utils.Utils.getFormattedDate;
 
 public class InputHandler implements Runnable {
     private boolean close = false;
@@ -140,7 +141,7 @@ public class InputHandler implements Runnable {
             System.out.print("> Client " + x.getInetAddress() + ":" + x.getPort());
             WinSomeSession wss = ConnectionHandler.getSessionBySocket(x);
             if(wss != null) {
-                System.out.println(" (utente connesso: " + wss.getUsername() + " | data login: " + new Date(wss.getTimestamp()) + ")");
+                System.out.println(" (utente connesso: " + wss.getUsername() + " | data login: " + getFormattedDate(wss.getTimestamp()) + ")");
             } else {
                 System.out.println(" (nessun login)");
             }

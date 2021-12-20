@@ -11,6 +11,7 @@ import it.pantani.winsome.entities.WinSomeSession;
 import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.rmi.WinSomeCallback;
+import it.pantani.winsome.utils.PostComparator;
 import it.pantani.winsome.utils.Utils;
 
 import java.io.BufferedReader;
@@ -20,7 +21,10 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static it.pantani.winsome.utils.Utils.getFormattedDate;
 
 public class ConnectionHandler implements Runnable {
     private final Socket clientSocket;
@@ -79,6 +83,9 @@ public class ConnectionHandler implements Runnable {
                             }
                             logout(arguments[0]);
                         }
+                        case "listusers" -> {
+                            listusers();
+                        }
                         case "listfollowing" -> {
                             listfollowing();
                         }
@@ -119,6 +126,49 @@ public class ConnectionHandler implements Runnable {
                                 out.println("Comando errato, usa: rate <id post> <+1/-1>");
                             }
                         }
+                        case "showfeed" -> {
+                            showfeed();
+                        }
+                        case "showpost" -> {
+                            if(arguments.length != 1) {
+                                System.err.println("Comando errato, usa: showpost <id post>");
+                                break;
+                            }
+                            try {
+                                showpost(Integer.parseInt(arguments[0]));
+                            } catch(NumberFormatException e) {
+                                out.println("Comando errato, usa: showpost <id post>");
+                            }
+                        }
+                        case "comment" -> {
+                            if(arguments.length < 2) {
+                                System.err.println("Comando errato, usa: comment <id post> <testo>");
+                                break;
+                            }
+                            // ottenimento commento
+                            StringBuilder comment = new StringBuilder();
+                            for(int i = 2; i < temp.length; i++) {
+                                comment.append(temp[i]).append(" ");
+                            }
+                            comment.deleteCharAt(comment.length()-1);
+                            // aggiunta del commento
+                            try {
+                                addComment(Integer.parseInt(arguments[0]), comment.toString());
+                            } catch(NumberFormatException e) {
+                                out.println("Comando errato, usa: comment <id post> <testo>");
+                            }
+                        }
+                        case "delete" -> {
+                            if(arguments.length != 1) {
+                                System.err.println("Comando errato, usa: delete <id post>");
+                                break;
+                            }
+                            try {
+                                deletePost(Integer.parseInt(arguments[0]));
+                            } catch(NumberFormatException e) {
+                                out.println("Comando errato, usa: delete <id post>");
+                            }
+                        }
                         default -> invalidcmd();
                     }
                 } else {
@@ -151,9 +201,9 @@ public class ConnectionHandler implements Runnable {
                 WinSomeSession wss = getSession(username);
                 if(wss != null) {
                     if(wss.getSessionSocket() == clientSocket) {
-                        out.println("hai gia' fatto il login in data " + new Date(wss.getTimestamp()));
+                        out.println("hai gia' fatto il login in data " + getFormattedDate(wss.getTimestamp()));
                     } else {
-                        out.println("questo utente e' collegato e ha fatto il login in data " + new Date(wss.getTimestamp()));
+                        out.println("questo utente e' collegato e ha fatto il login in data " + getFormattedDate(wss.getTimestamp()));
                     }
                     return;
                 }
@@ -191,6 +241,43 @@ public class ConnectionHandler implements Runnable {
         } else {
             out.println("utente non trovato");
         }
+    }
+
+    private void listusers() {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        ConcurrentLinkedQueue<String> current_user_tags = s.getUser(current_user).getTags_list();
+        if(current_user_tags.size() == 0) {
+            out.println("non hai tag impostati, quindi non ci sono utenti con tag in comune con te");
+            return;
+        }
+
+        // ottengo gli utenti con almeno un tag uguale e rimuovo me stesso
+        ArrayList<WinSomeUser> usersWithTag = s.getUsersWithSimilarTags(current_user_tags);
+        usersWithTag.removeIf(u -> Objects.equals(u.getUsername(), current_user));
+        if(usersWithTag.size() == 0) { // se dopo la rimozione ci sono 0 utenti allora restituisco questo errore
+            out.println("nessun utente ha almeno un tag in comune con te :(");
+            return;
+        }
+
+        StringBuilder output = new StringBuilder();
+        output.append("UTENTI CON ALMENO UN TAG IN COMUNE CON TE:\n");
+        for(WinSomeUser u : usersWithTag) {
+            output.append("* ").append(u.getUsername()).append(" | Tag in comune: ");
+            for(String ut : u.getTags_list()) {
+                if(current_user_tags.contains(ut)) {
+                    output.append(ut).append(" ");
+                }
+            }
+            output.deleteCharAt(output.length()-1);
+            output.append("\n");
+        }
+        Utils.send(out, output.toString());
     }
 
     private void listfollowing() {
@@ -313,20 +400,12 @@ public class ConnectionHandler implements Runnable {
             out.println("il tuo blog e' vuoto, pubblica qualcosa!");
             return;
         }
-        String ret = "BLOG DI " + current_user + ":\n";
+        StringBuilder ret = new StringBuilder("BLOG DI " + current_user + ":\n");
+        user_posts.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
         for(WinSomePost p : user_posts) {
-            int up = p.getUpvotes(), down = p.getDownvotes();
-
-            ret += "[Post #" + p.getPostID() + "]\n";
-            ret += "Titolo: " + p.getPostTitle() + "\n";
-            ret += "Contenuto: " + p.getPostContent() + "\n";
-            ret += "Voti: " + up + " ";
-            if(up == 1) ret += "positivo"; else ret += "positivi";
-            ret += ", " + down + " ";
-            if(down == 1) ret += "negativo"; else ret += "negativi";
-            ret += "\n";
+            ret.append(s.getPostFormatted(p.getPostID(), true));
         }
-        Utils.send(out, ret);
+        Utils.send(out, ret.toString());
     }
 
     private void rate(int post_id, int vote) {
@@ -352,8 +431,89 @@ public class ConnectionHandler implements Runnable {
             out.println("impossibile trovare post con id #" + post_id);
         } catch(InvalidOperationException e) {
             out.println("hai gia' votato questo post");
-        } catch(OwnPostVoteException e) {
+        } catch(SameAuthorException e) {
             out.println("non puoi votare un tuo stesso post");
+        } catch(NotInFeedException e) {
+            out.println("questo post non e' nel tuo feed");
+        }
+    }
+
+    private void showfeed() {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        ArrayList<WinSomePost> feed = s.getUserFeed(current_user);
+        if(feed == null) {
+            out.println("feed vuoto, non segui alcun utenti");
+            return;
+        }
+
+        StringBuilder output = new StringBuilder();
+        output.append("FEED DI ").append(current_user).append(":\n");
+        if(feed.size() == 0) {
+            output.append("nessun utente che segui ha pubblicato qualcosa, per ora");
+        } else {
+            for(WinSomePost p : feed) {
+                output.append(s.getPostFormatted(p.getPostID(), false));
+            }
+        }
+        Utils.send(out, output.toString());
+    }
+
+    private void showpost(int post_id) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        WinSomePost p = s.getPost(post_id);
+
+        if(p == null) {
+            out.println("post con id #" + post_id + " inesistente");
+            return;
+        }
+        Utils.send(out, s.getPostFormatted(p.getPostID(), false));
+    }
+
+    private void addComment(int post_id, String text) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        try {
+            s.commentPost(current_user, post_id, text);
+            out.println("commento pubblicato");
+        } catch(PostNotFoundException e) {
+            out.println("impossibile trovare post con id #" + post_id);
+        } catch(SameAuthorException e) {
+            out.println("non puoi commentare sotto un tuo stesso post");
+        } catch(NotInFeedException e) {
+            out.println("questo post non e' nel tuo feed");
+        }
+    }
+
+    private void deletePost(int post_id) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        try {
+            s.deletePost(current_user, post_id);
+            out.println("post #" + post_id + " eliminato");
+        } catch(PostNotFoundException e) {
+            out.println("impossibile trovare post con id #" + post_id);
+        } catch(InvalidOperationException e) {
+            out.println("non puoi eliminare un post che non e' tuo");
         }
     }
 

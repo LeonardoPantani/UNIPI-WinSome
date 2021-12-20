@@ -6,15 +6,20 @@
 
 package it.pantani.winsome;
 
+import it.pantani.winsome.entities.WinSomeComment;
 import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.utils.ConfigManager;
+import it.pantani.winsome.utils.PostComparator;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static it.pantani.winsome.utils.Utils.getFormattedDate;
 
 public class SocialManager {
     private final ConfigManager config;
@@ -62,15 +67,92 @@ public class SocialManager {
         return idpost;
     }
 
-    public void ratePost(String username, int post_id, int value) throws UserNotFoundException, InvalidVoteException, PostNotFoundException, InvalidOperationException, OwnPostVoteException {
+    public void ratePost(String username, int post_id, int value) throws UserNotFoundException, InvalidVoteException, PostNotFoundException, InvalidOperationException, SameAuthorException, NotInFeedException {
         if(!userList.containsKey(username)) throw new UserNotFoundException();
         if(value != -1 && value != 1) throw new InvalidVoteException();
         WinSomePost toRate = postList.get(post_id);
         if(toRate == null) throw new PostNotFoundException();
-        if(toRate.getAuthor().equals(username)) throw new OwnPostVoteException();
+        if(toRate.getAuthor().equals(username)) throw new SameAuthorException();
+        if(!isPostInFeed(post_id, username)) throw new NotInFeedException();
         if(toRate.findVoteByUser(username) != null) throw new InvalidOperationException();
 
         toRate.addVote(username, value);
+    }
+
+    public void commentPost(String username, int post_id, String text) throws PostNotFoundException, SameAuthorException, NotInFeedException {
+        WinSomePost toComment = postList.get(post_id);
+        if(toComment == null) throw new PostNotFoundException();
+        if(toComment.getAuthor().equals(username)) throw new SameAuthorException();
+        if(!isPostInFeed(post_id, username)) throw new NotInFeedException();
+
+        toComment.addComment(username, text);
+    }
+
+    public void deletePost(String username, int post_id) throws PostNotFoundException, InvalidOperationException {
+        WinSomePost toDelete = postList.get(post_id);
+        if(toDelete == null) throw new PostNotFoundException();
+        if(!toDelete.getAuthor().equals(username)) throw new InvalidOperationException();
+
+        postList.remove(post_id);
+    }
+
+    public WinSomePost getPost(int post_id) {
+        return postList.get(post_id);
+    }
+
+    @SuppressWarnings("StringConcatenationInLoop")
+    public String getPostFormatted(int post_id, boolean hideAuthor) {
+        WinSomePost p = postList.get(post_id);
+        String ret;
+        if(p == null) return null;
+        ArrayList<WinSomeComment> lista_commenti = p.getComments();
+
+        ret = "[Post #" + p.getPostID() + "]\n";
+        ret += "Titolo: " + p.getPostTitle() + "\n";
+        ret += "Contenuto: " + p.getPostContent() + "\n";
+        if(!hideAuthor) ret += "Autore: " + p.getAuthor() + "\n";
+        ret += "Voti: " + p.getUpvotes() + " ";
+        if(p.getUpvotes() == 1) ret += "positivo"; else ret += "positivi";
+        ret += ", " + p.getDownvotes() + " ";
+        if(p.getDownvotes() == 1) ret += "negativo"; else ret += "negativi";
+        ret += "\n";
+        ret += "Data: " + getFormattedDate(p.getDateSent()) + "\n";
+        if(lista_commenti != null) {
+            ret += "- Commenti (" + lista_commenti.size() + "):\n";
+            for(WinSomeComment c : lista_commenti) {
+                ret += "- " + c.getAuthor() + ": " + c.getContent() + "\n";
+            }
+        }
+        return ret;
+    }
+
+    public ArrayList<WinSomeUser> getUsersWithSimilarTags(ConcurrentLinkedQueue<String> tags_list) {
+        ArrayList<WinSomeUser> usersWithTag = null;
+        ArrayList<WinSomeUser> ret;
+
+        for(String t : tags_list) {
+            ret = getUsersByTag(t);
+            for(WinSomeUser u : ret) {
+                if(usersWithTag == null) usersWithTag = new ArrayList<>();
+                if(!usersWithTag.contains(u)) {
+                    usersWithTag.add(u);
+                }
+            }
+        }
+
+        return usersWithTag;
+    }
+
+    public ArrayList<WinSomeUser> getUsersByTag(String tag) {
+        ArrayList<WinSomeUser> ret = null;
+        for(WinSomeUser u : userList.values()) {
+            if(u.getTags_list().contains(tag)) {
+                if(ret == null) ret = new ArrayList<>();
+                ret.add(u);
+            }
+        }
+
+        return ret;
     }
 
     public ArrayList<WinSomePost> getUserPosts(String username) {
@@ -84,6 +166,32 @@ public class SocialManager {
         }
 
         return ret;
+    }
+
+    public ArrayList<WinSomePost> getUserFeed(String username) {
+        ArrayList<String> usersFollowedByUser = getFollowing(username);
+        if(usersFollowedByUser == null) {
+            return null;
+        }
+
+        ArrayList<WinSomePost> feed = new ArrayList<>();
+        for(String u : usersFollowedByUser) {
+            ArrayList<WinSomePost> p = getUserPosts(u);
+            if(p != null) feed.addAll(p);
+        }
+        feed.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
+
+        return feed;
+    }
+
+    boolean isPostInFeed(int post_id, String username) {
+        ArrayList<WinSomePost> user_feed = getUserFeed(username);
+        for(WinSomePost p : user_feed) {
+            if(p.getPostID() == post_id) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void setPostList(ConcurrentHashMap<Integer, WinSomePost> postList) {

@@ -6,8 +6,8 @@
 
 package it.pantani.winsome.exceptions;
 
-public class OwnPostVoteException extends Throwable {
-    public OwnPostVoteException() {
+public class NotInFeedException extends Throwable{
+    public NotInFeedException() {
         super();
     }
 }

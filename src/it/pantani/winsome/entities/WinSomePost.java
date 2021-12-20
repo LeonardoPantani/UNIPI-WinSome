@@ -14,6 +14,7 @@ public class WinSomePost {
     private final String author;
     private final String postTitle;
     private final String postContent;
+    private final long dateSent;
     private final ConcurrentHashMap<String, Integer> votes;
     private ArrayList<WinSomeComment> comments;
 
@@ -22,6 +23,7 @@ public class WinSomePost {
         this.author = author;
         this.postTitle = postTitle;
         this.postContent = postContent;
+        this.dateSent = System.currentTimeMillis();
         this.votes = new ConcurrentHashMap<>();
     }
 
@@ -39,6 +41,10 @@ public class WinSomePost {
 
     public String getPostContent() {
         return postContent;
+    }
+
+    public long getDateSent() {
+        return dateSent;
     }
 
     public ConcurrentHashMap<String, Integer> getVoteList() {
@@ -78,6 +84,7 @@ public class WinSomePost {
     }
 
     public void addComment(String username, String content) {
+        if(comments == null) comments = new ArrayList<>();
         comments.add(new WinSomeComment(username, content));
     }
 
