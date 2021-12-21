@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
@@ -104,16 +105,18 @@ public class SocialManager {
     }
 
     @SuppressWarnings("StringConcatenationInLoop")
-    public String getPostFormatted(int post_id, boolean hideAuthor) {
+    public String getPostFormatted(int post_id, boolean showRewin) {
         WinSomePost p = postList.get(post_id);
         String ret;
         if(p == null) return null;
         ArrayList<WinSomeComment> lista_commenti = p.getComments();
+        ConcurrentLinkedQueue q = p.getRewinUsers();
 
         ret = "[Post #" + p.getPostID() + "]\n";
+        if(showRewin && q.size() != 0) ret += "* post rewinnato da " + q.size() + " "; if(q.size() == 1) { ret += "utente"; } else { ret += "utenti"; } ret += " *\n";
         ret += "Titolo: " + p.getPostTitle() + "\n";
         ret += "Contenuto: " + p.getPostContent() + "\n";
-        if(!hideAuthor) ret += "Autore: " + p.getAuthor() + "\n";
+        ret += "Autore: " + p.getAuthor() + "\n";
         ret += "Voti: " + p.getUpvotes() + " ";
         if(p.getUpvotes() == 1) ret += "positivo"; else ret += "positivi";
         ret += ", " + p.getDownvotes() + " ";
@@ -171,7 +174,21 @@ public class SocialManager {
         return ret;
     }
 
-    public ArrayList<WinSomePost> getUserFeed(String username) {
+    public ArrayList<WinSomePost> getBlog(String username) {
+        ArrayList<WinSomePost> blog = null;
+
+        for (WinSomePost p : postList.values()) {
+            if(p.getAuthor().equals(username) || p.isRewinUserPresent(username)) {
+                if(blog == null) blog = new ArrayList<>();
+                blog.add(p);
+            }
+        }
+        if(blog != null) blog.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
+
+        return blog;
+    }
+
+    public ArrayList<WinSomePost> getFeed(String username) {
         ArrayList<String> usersFollowedByUser = getFollowing(username);
         if(usersFollowedByUser == null) {
             return null;
@@ -179,22 +196,31 @@ public class SocialManager {
 
         ArrayList<WinSomePost> feed = new ArrayList<>();
         for(String u : usersFollowedByUser) {
-            ArrayList<WinSomePost> p = getUserPosts(u);
+            ArrayList<WinSomePost> p = getBlog(u);
             if(p != null) feed.addAll(p);
         }
-        feed.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
+        feed.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel feed
 
         return feed;
     }
 
     boolean isPostInFeed(int post_id, String username) {
-        ArrayList<WinSomePost> user_feed = getUserFeed(username);
+        ArrayList<WinSomePost> user_feed = getFeed(username);
         for(WinSomePost p : user_feed) {
             if(p.getPostID() == post_id) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void rewinPost(int post_id, String username) throws InvalidOperationException, NotInFeedException, PostNotFoundException, UserNotFoundException, SameAuthorException {
+        if(!userList.containsKey(username)) throw new UserNotFoundException();
+        WinSomePost toRewin = postList.get(post_id);
+        if(toRewin == null) throw new PostNotFoundException();
+        if(!isPostInFeed(post_id, username)) throw new NotInFeedException();
+        if(toRewin.getAuthor().equals(username)) throw new SameAuthorException();
+        if(!toRewin.addRewin(username)) throw new InvalidOperationException();
     }
 
     public void setPostList(ConcurrentHashMap<Integer, WinSomePost> postList) {

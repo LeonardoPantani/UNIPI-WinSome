@@ -218,10 +218,17 @@ public class ClientMain {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
                         }
-
                         case "blog" -> {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                        }
+                        case "rewin" -> {
+                            if(arguments.length != 1) {
+                                System.err.println("[!] Comando errato, usa: rewin <id post>");
+                                break;
+                            }
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + in.readLine());
                         }
                         case "rate" -> {
                             if(arguments.length != 2) {

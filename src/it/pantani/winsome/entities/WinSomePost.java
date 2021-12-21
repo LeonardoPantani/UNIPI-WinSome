@@ -8,6 +8,7 @@ package it.pantani.winsome.entities;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class WinSomePost {
     private final int postID;
@@ -17,6 +18,7 @@ public class WinSomePost {
     private final long dateSent;
     private final ConcurrentHashMap<String, Integer> votes;
     private ArrayList<WinSomeComment> comments;
+    private final ConcurrentLinkedQueue<String> rewinUsers;
 
     public WinSomePost(int postID, String author, String postTitle, String postContent) {
         this.postID = postID;
@@ -25,6 +27,7 @@ public class WinSomePost {
         this.postContent = postContent;
         this.dateSent = System.currentTimeMillis();
         this.votes = new ConcurrentHashMap<>();
+        this.rewinUsers = new ConcurrentLinkedQueue<>();
     }
 
     public int getPostID() {
@@ -102,5 +105,22 @@ public class WinSomePost {
             }
         }
         return ret;
+    }
+
+    public ConcurrentLinkedQueue<String> getRewinUsers() {
+        return rewinUsers;
+    }
+
+    public boolean addRewin(String username) {
+        if(rewinUsers.contains(username)) {
+            return false;
+        } else {
+            rewinUsers.add(username);
+            return true;
+        }
+    }
+
+    public boolean isRewinUserPresent(String username) {
+        return rewinUsers.contains(username);
     }
 }

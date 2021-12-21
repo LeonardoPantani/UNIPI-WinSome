@@ -13,7 +13,6 @@ import it.pantani.winsome.rmi.WinSomeService;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
 import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.JsonManager;
-import it.pantani.winsome.utils.Utils;
 
 import java.io.IOException;
 import java.net.ServerSocket;

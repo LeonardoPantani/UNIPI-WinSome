@@ -115,6 +115,17 @@ public class ConnectionHandler implements Runnable {
                         case "blog" -> {
                             blog();
                         }
+                        case "rewin" -> {
+                            if(arguments.length != 1) {
+                                out.println("Comando errato, usa: rewin <id post>");
+                                break;
+                            }
+                            try {
+                                rewinPost(Integer.parseInt(arguments[0]));
+                            } catch(NumberFormatException e) {
+                                out.println("Comando errato, usa: rewin <id post>");
+                            }
+                        }
                         case "rate" -> {
                             if(arguments.length != 2) {
                                 out.println("Comando errato, usa: rate <id post> <+1/-1>");
@@ -401,7 +412,7 @@ public class ConnectionHandler implements Runnable {
         SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
-        ArrayList<WinSomePost> user_posts = s.getUserPosts(current_user);
+        ArrayList<WinSomePost> user_posts = s.getBlog(current_user);
         if(user_posts == null) {
             out.println("il tuo blog e' vuoto, pubblica qualcosa!");
             return;
@@ -412,6 +423,31 @@ public class ConnectionHandler implements Runnable {
             ret.append(s.getPostFormatted(p.getPostID(), true));
         }
         Utils.send(out, ret.toString());
+    }
+
+    private void rewinPost(int post_id) {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        String current_user = clientSession.getUsername();
+
+        try {
+            s.rewinPost(post_id, current_user);
+            out.println("rewin del post #" + post_id + " effettuato!");
+        } catch(InvalidOperationException e) {
+            out.println("hai gia' fatto il rewin di questo post");
+        } catch(NotInFeedException e) {
+            out.println("questo post non e' nel tuo feed");
+        } catch(PostNotFoundException e) {
+            out.println("impossibile trovare post con id #" + post_id);
+        } catch(SameAuthorException e) {
+            out.println("non puoi fare il rewin su un tuo post");
+        } catch(UserNotFoundException e) {
+            e.printStackTrace();
+            out.println("errore interno");
+        }
     }
 
     private void rate(int post_id, int vote) {
@@ -431,6 +467,7 @@ public class ConnectionHandler implements Runnable {
             }
         } catch(UserNotFoundException e) {
             e.printStackTrace();
+            out.println("errore interno");
         } catch(InvalidVoteException e) {
             out.println("voto non valido");
         } catch(PostNotFoundException e) {
@@ -452,7 +489,7 @@ public class ConnectionHandler implements Runnable {
         SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
-        ArrayList<WinSomePost> feed = s.getUserFeed(current_user);
+        ArrayList<WinSomePost> feed = s.getFeed(current_user);
         if(feed == null) {
             out.println("feed vuoto, non segui alcun utenti");
             return;
@@ -482,7 +519,7 @@ public class ConnectionHandler implements Runnable {
             out.println("post con id #" + post_id + " inesistente");
             return;
         }
-        Utils.send(out, s.getPostFormatted(p.getPostID(), false));
+        Utils.send(out, s.getPostFormatted(p.getPostID(), true));
     }
 
     private void addComment(int post_id, String text) {
