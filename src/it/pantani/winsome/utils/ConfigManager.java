@@ -28,6 +28,11 @@ public class ConfigManager {
             prop.setProperty("rmi_callback_client_port", "1100");
             prop.setProperty("post_max_title_length", "20");
             prop.setProperty("post_max_content_length", "500");
+            prop.setProperty("currency_name_singular", "wincoin");
+            prop.setProperty("currency_name_plural", "wincoins");
+            prop.setProperty("multicast_address", "224.0.0.1");
+            prop.setProperty("multicast_port", "6788");
+            prop.setProperty("rewards_check_timeout", "10000"); // ms
             prop.setProperty("last_post_id", "0");
             prop.store(out, CONFIG_COMMENT);
             out.close();

@@ -12,6 +12,7 @@ import com.google.gson.stream.JsonReader;
 import it.pantani.winsome.SocialManager;
 import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.entities.WinSomeWallet;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -29,6 +30,7 @@ public class JsonManager {
     private static final String FOLLOWERS_DATA_PATH = "followers_data.json"; // path to json file
     private static final String FOLLOWING_DATA_PATH = "following_data.json"; // path to json file
     private static final String POSTS_DATA_PATH = "posts_data.json"; // path to json file
+    private static final String WALLETS_DATA_PATH = "wallets_data.json"; // path to json file
 
     private final Gson gson;
     private JsonReader reader;
@@ -36,6 +38,7 @@ public class JsonManager {
     public JsonManager() {
         gson = new Gson();
         if(createFile(FOLDER_NAME+"/"+ USER_DATA_PATH) != 0) System.err.println("[!] Errore creazione file dati utente");
+        if(createFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (wallets)");
         if(createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
         if(createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
         if(createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
@@ -43,6 +46,7 @@ public class JsonManager {
 
     public void loadAll(SocialManager s) {
         loadUserData(s);
+        loadWalletsData(s);
         loadPostData(s);
         loadRelationsData(s);
     }
@@ -73,6 +77,19 @@ public class JsonManager {
         s.setPostList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
     }
 
+    public void loadWalletsData(SocialManager s) {
+        String input = getFromFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH);
+        if(input == null) return;
+
+        // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
+        Type listaDelMioOggettoClasse = new TypeToken<ConcurrentHashMap<String, WinSomeWallet>>() {}.getType();
+        if(input.equals("")) {
+            System.out.println("> File dati wallet vuoto.");
+            return;
+        }
+        s.setWalletList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
+    }
+
     public void loadRelationsData(SocialManager s) {
         // FOLLOWERS
         String input = getFromFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH);
@@ -101,6 +118,7 @@ public class JsonManager {
 
     public void saveAll(SocialManager s) throws IOException {
         saveInFile(FOLDER_NAME+"/"+ USER_DATA_PATH, s.getUserList());
+        saveInFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH, s.getWalletList());
 
         saveInFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH, s.getFollowersList());
         saveInFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH, s.getFollowingList());

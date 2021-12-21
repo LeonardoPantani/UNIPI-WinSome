@@ -9,12 +9,14 @@ package it.pantani.winsome;
 import it.pantani.winsome.entities.WinSomeSession;
 import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.rmi.WinSomeCallback;
+import it.pantani.winsome.utils.ConfigManager;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
@@ -28,7 +30,6 @@ public class InputHandler implements Runnable {
         in = new Scanner(System.in);
 
         while(!close) {
-            System.out.print("> ");
             String raw_request = in.nextLine();
             String[] temp = raw_request.split(" ");
 
@@ -80,10 +81,6 @@ public class InputHandler implements Runnable {
                     stopServer();
                 }
                 case "test" -> {
-                    if (arguments.length != 3) {
-                        System.err.println("[!] Utilizzo comando errato. Vedi codice per dettagli.");
-                        break;
-                    }
                     test(arguments);
                 }
                 case "help" -> {
@@ -155,7 +152,7 @@ public class InputHandler implements Runnable {
             System.out.println("> Non ci sono utenti registrati.");
             return;
         }
-        ConcurrentLinkedQueue<String> user_tags_list;
+        Set<String> user_tags_list;
 
         System.out.println("> LISTA UTENTI REGISTRATI (" + numUsers + "):");
         for(WinSomeUser u : s.getUserList().values()) {
@@ -207,6 +204,12 @@ public class InputHandler implements Runnable {
 
     private void test(String[] arguments) {
         SocialManager s = ServerMain.social;
+        ConfigManager c = ServerMain.config;
+
+        if(arguments.length < 1) {
+            System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
+            return;
+        }
 
         switch (arguments[0]) {
             case "addfollower" -> {
@@ -252,7 +255,29 @@ public class InputHandler implements Runnable {
                 s.removeFollowing(arguments[1], arguments[2]);
                 System.out.println("> L'utente '" + arguments[1] + "' non segue piu' '" + arguments[2]+ "'");
             }
-            default -> System.err.println("[!] Uso comando errato");
+
+            case "changebal" -> {
+                if (arguments.length != 3) {
+                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <cambiamento>");
+                    break;
+                }
+                float change;
+                try {
+                    change = Float.parseFloat(arguments[2]);
+                } catch(NumberFormatException e) {
+                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <cambiamento>");
+                    break;
+                }
+                if(s.getUser(arguments[1]) == null) {
+                    System.err.println("[!] L'utente '" + arguments[1] + "' non esiste");
+                    break;
+                }
+                float newBalance = s.getWalletByUsername(arguments[1]).changeBalance(change);
+                System.out.print("> L'utente '" + arguments[1] + "' ha ora un bilancio di " + newBalance + " ");
+                if(newBalance != 1) System.out.println(c.getPreference("currency_name_plural"));
+                else System.out.println(c.getPreference("currency_name_singular"));
+            }
+            default -> System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
         }
     }
 

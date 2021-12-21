@@ -31,6 +31,8 @@ public class ClientMain {
     public static int server_port = 6789;
     public static int server_rmi_port = 1099;
     public static int client_rmi_callback_port = 1100;
+    public static String multicast_server_address = "224.0.0.1";
+    public static int multicast_server_port = 6788;
 
     public static ArrayList<String> listaFollower = null;
 
@@ -61,6 +63,12 @@ public class ClientMain {
         String raw_request = "";
         boolean reqFailed = false;
 
+        // Ascolto aggiornamenti wallet
+        WalletUpdateManager wum = new WalletUpdateManager(multicast_server_address, multicast_server_port);
+        Thread walletCheckerThread = new Thread(wum);
+        walletCheckerThread.start();
+
+        // Mi collego al server
         loopesterno:
         while(true) {
             try {
@@ -251,6 +259,14 @@ public class ClientMain {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
                         }
+                        case "wallet" -> {
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
+                        }
+                        case "walletbtc" -> {
+                            out.println(raw_request);
+                            System.out.println("[Server]> " + Utils.receive(in));
+                        }
                         default -> {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
@@ -276,6 +292,11 @@ public class ClientMain {
                 UnicastRemoteObject.unexportObject(callbackobj, false);
             }
         } catch (RemoteException ignored) {}
+        // chiudo lettore
+        lettore.close();
+        // chiudo wallet update manager
+        wum.stopExecution();
+
         System.out.println("> Terminazione client.");
     }
 }

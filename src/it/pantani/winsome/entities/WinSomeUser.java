@@ -8,13 +8,14 @@ package it.pantani.winsome.entities;
 
 import it.pantani.winsome.utils.PasswordManager;
 
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Set;
 
 public class WinSomeUser {
     private final String username;
     private final String password;
-    private final ConcurrentLinkedQueue<String> tags_list = new ConcurrentLinkedQueue<>();
+    private final Set<String> tags_list = new LinkedHashSet<>(); // mantiene l'ordine di inserimento ed impedisce che due elementi uguali vengano inseriti
     private final long creationDate;
 
     public WinSomeUser(String username, String password, List<String> tags_list) {
@@ -36,7 +37,7 @@ public class WinSomeUser {
         return creationDate;
     }
 
-    public ConcurrentLinkedQueue<String> getTags_list() {
+    public Set<String> getTags_list() {
         return tags_list;
     }
 

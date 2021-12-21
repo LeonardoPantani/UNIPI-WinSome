@@ -6,11 +6,10 @@
 
 package it.pantani.winsome;
 
-import it.pantani.winsome.entities.WinSomePost;
-import it.pantani.winsome.entities.WinSomeSession;
-import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.entities.*;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.rmi.WinSomeCallback;
+import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.PostComparator;
 import it.pantani.winsome.utils.Utils;
 
@@ -22,6 +21,7 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
@@ -169,6 +169,12 @@ public class ConnectionHandler implements Runnable {
                                 out.println("Comando errato, usa: delete <id post>");
                             }
                         }
+                        case "wallet" -> {
+                            getWallet();
+                        }
+                        case "walletbtc" -> {
+                            getWalletInBitcoin();
+                        }
                         default -> invalidcmd();
                     }
                 } else {
@@ -251,7 +257,7 @@ public class ConnectionHandler implements Runnable {
         SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
-        ConcurrentLinkedQueue<String> current_user_tags = s.getUser(current_user).getTags_list();
+        Set<String> current_user_tags = s.getUser(current_user).getTags_list();
         if(current_user_tags.size() == 0) {
             out.println("non hai tag impostati, quindi non ci sono utenti con tag in comune con te");
             return;
@@ -515,6 +521,69 @@ public class ConnectionHandler implements Runnable {
         } catch(InvalidOperationException e) {
             out.println("non puoi eliminare un post che non e' tuo");
         }
+    }
+
+    private void getWallet() {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        ConfigManager c = ServerMain.config;
+        String current_user = clientSession.getUsername();
+
+        WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
+        ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
+
+        StringBuilder output = new StringBuilder("WALLET DI " + current_user + ":\n");
+        float money;
+        output.append("Bilancio: ").append(user_wallet.getBalance());
+        if(user_wallet.getBalance() != 1) output.append(" ").append(c.getPreference("currency_name_plural"));
+        else output.append(" ").append(c.getPreference("currency_name_singular"));
+        output.append("\n");
+        if(user_transactions.size() != 0) {
+            output.append("TRANSAZIONI:\n");
+            for(WinSomeTransaction t : user_transactions) {
+                output.append("* ");
+                money = t.getEdit();
+                if(money >= 0) output.append("+").append(money);
+                else output.append(money);
+                if(money != 1) output.append(" ").append(c.getPreference("currency_name_plural"));
+                else output.append(" ").append(c.getPreference("currency_name_singular"));
+                output.append(" | Data: ").append(getFormattedDate(t.getDate())).append("\n");
+            }
+        }
+
+        Utils.send(out, output.toString());
+    }
+
+    private void getWalletInBitcoin() {
+        if(!isLogged()) {
+            out.println("non hai effettuato il login");
+            return;
+        }
+        SocialManager s = ServerMain.social;
+        ConfigManager c = ServerMain.config;
+        String current_user = clientSession.getUsername();
+
+        WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
+        ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
+
+        long calcTimeStart = System.currentTimeMillis();
+        float conversionRate = Utils.generateRandomFloat();
+        System.out.println("[CH #" + chCode + "]> Rateo di conversione (" + conversionRate + ") ottenuto in " + (System.currentTimeMillis() - calcTimeStart) + "ms, trasmissione.");
+        float money = user_wallet.getBalance();
+        float moneyInBitcoin = money * conversionRate;
+
+        String output = "WALLET DI " + current_user + ":\n";
+        output += "Bilancio: " + user_wallet.getBalance();
+        if(user_wallet.getBalance() != 1) output += " " + c.getPreference("currency_name_plural");
+        else output += " " + c.getPreference("currency_name_singular");
+        output += "\n";
+        output += "Tasso di conversione: " + conversionRate + " (aggiornato al " + getFormattedDate(calcTimeStart) + ")\n";
+        output += "Bilancio in Bitcoin: " + moneyInBitcoin + "\n";
+
+        Utils.send(out, output);
     }
 
     public static WinSomeSession getSession(String username) {

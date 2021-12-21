@@ -13,6 +13,7 @@ import it.pantani.winsome.rmi.WinSomeService;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
 import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.JsonManager;
+import it.pantani.winsome.utils.Utils;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -106,6 +107,10 @@ public class ServerMain {
             e.printStackTrace();
         }
 
+        RewardsManager rm = new RewardsManager(config);
+        Thread walletUpdaterThread = new Thread(rm);
+        walletUpdaterThread.start();
+
 
         System.out.println("> Server in ascolto sulla porta " + server_port + ". Scrivi 'help' per una lista di comandi.");
 
@@ -182,6 +187,9 @@ public class ServerMain {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // rewards manager stop
+        rm.stopExecution();
 
         System.out.println("> Server terminato.");
     }

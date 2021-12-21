@@ -9,6 +9,11 @@ package it.pantani.winsome.utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +21,23 @@ import java.time.format.FormatStyle;
 import java.util.Locale;
 
 public class Utils {
+    public static final String web_address = "https://www.random.org/decimal-fractions/?num=1&dec=6&col=1&format=plain&rnd=new";
+
+    public static float generateRandomFloat() {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(web_address)).build();
+
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch(IOException | InterruptedException e) {
+            e.printStackTrace();
+            return 0;
+        }
+
+        return Float.parseFloat(response.body());
+    }
+
     public static void send(PrintWriter out, String send) {
         int bytes = send.getBytes().length;
         out.println(bytes);

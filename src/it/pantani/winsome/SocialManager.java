@@ -9,14 +9,15 @@ package it.pantani.winsome;
 import it.pantani.winsome.entities.WinSomeComment;
 import it.pantani.winsome.entities.WinSomePost;
 import it.pantani.winsome.entities.WinSomeUser;
+import it.pantani.winsome.entities.WinSomeWallet;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.PostComparator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
@@ -30,12 +31,14 @@ public class SocialManager {
     private ConcurrentHashMap<String, ArrayList<String>> followersList;
     private ConcurrentHashMap<String, ArrayList<String>> followingList; // ridondanza
     private ConcurrentHashMap<Integer, WinSomePost> postList;
+    private ConcurrentHashMap<String, WinSomeWallet> walletList;
 
     public SocialManager(ConfigManager config) throws IOException {
         this.config = config;
         userList = new ConcurrentHashMap<>();
         followersList = new ConcurrentHashMap<>();
         followingList = new ConcurrentHashMap<>();
+        walletList = new ConcurrentHashMap<>();
         postList = new ConcurrentHashMap<>();
 
         // elaborazione last_post_id
@@ -126,7 +129,7 @@ public class SocialManager {
         return ret;
     }
 
-    public ArrayList<WinSomeUser> getUsersWithSimilarTags(ConcurrentLinkedQueue<String> tags_list) {
+    public ArrayList<WinSomeUser> getUsersWithSimilarTags(Set<String> tags_list) {
         ArrayList<WinSomeUser> usersWithTag = null;
         ArrayList<WinSomeUser> ret;
 
@@ -290,6 +293,19 @@ public class SocialManager {
 
     public int getUserCount() {
         return userList.size();
+    }
+
+    public WinSomeWallet getWalletByUsername(String username) {
+        walletList.putIfAbsent(username, new WinSomeWallet(username));
+        return walletList.get(username);
+    }
+
+    public ConcurrentHashMap<String, WinSomeWallet> getWalletList() {
+        return walletList;
+    }
+
+    public void setWalletList(ConcurrentHashMap<String, WinSomeWallet> walletList) {
+        this.walletList = walletList;
     }
 
     public int getFollowerCount(String username) {

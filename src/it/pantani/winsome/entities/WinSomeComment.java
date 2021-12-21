@@ -9,10 +9,12 @@ package it.pantani.winsome.entities;
 public class WinSomeComment {
     private final String author;
     private final String content;
+    private final long dateSent;
 
     public WinSomeComment(String author, String content) {
         this.author = author;
         this.content = content;
+        this.dateSent = System.currentTimeMillis();
     }
 
     public String getAuthor() {
@@ -21,5 +23,9 @@ public class WinSomeComment {
 
     public String getContent() {
         return content;
+    }
+
+    public long getDateSent() {
+        return dateSent;
     }
 }
