@@ -26,7 +26,7 @@ import static it.pantani.winsome.utils.Utils.getFormattedDate;
 public class SocialManager {
     private final ConfigManager config;
 
-    private final AtomicInteger lastID;
+    public final AtomicInteger last_post_id;
 
     private ConcurrentHashMap<String, WinSomeUser> userList;
     private ConcurrentHashMap<String, ArrayList<String>> followersList;
@@ -54,11 +54,7 @@ public class SocialManager {
             throw new IOException("numero non valido");
         }
         if(id_parsed < 0) throw new IOException("numero negativo");
-        lastID = new AtomicInteger(id_parsed);
-    }
-
-    public void close(ConfigManager config) {
-        config.saveLastPostID(lastID.intValue());
+        last_post_id = new AtomicInteger(id_parsed);
     }
 
     public int createPost(String username, String post_title, String post_content) throws PostTitleTooLongException, PostContentTooLongException, UserNotFoundException {
@@ -66,7 +62,7 @@ public class SocialManager {
         if(post_title.length() > Integer.parseInt(config.getPreference("post_max_title_length"))) throw new PostTitleTooLongException();
         if(post_content.length() > Integer.parseInt(config.getPreference("post_max_content_length"))) throw new PostContentTooLongException();
 
-        int idpost = lastID.getAndIncrement();
+        int idpost = last_post_id.getAndIncrement();
         postList.putIfAbsent(idpost, new WinSomePost(idpost, username, post_title, post_content));
         return idpost;
     }
@@ -109,8 +105,8 @@ public class SocialManager {
         WinSomePost p = postList.get(post_id);
         String ret;
         if(p == null) return null;
-        ArrayList<WinSomeComment> lista_commenti = p.getComments();
-        ConcurrentLinkedQueue q = p.getRewinUsers();
+        ArrayList<WinSomeComment> lista_commenti = p.getCommentList();
+        ConcurrentLinkedQueue<String> q = p.getRewinUsers();
 
         ret = "[Post #" + p.getPostID() + "]\n";
         if(showRewin && q.size() != 0) ret += "* post rewinnato da " + q.size() + " "; if(q.size() == 1) { ret += "utente"; } else { ret += "utenti"; } ret += " *\n";

@@ -106,7 +106,7 @@ public class ServerMain {
             e.printStackTrace();
         }
 
-        RewardsManager rm = new RewardsManager(config);
+        RewardsManager rm = new RewardsManager(config, social);
         Thread walletUpdaterThread = new Thread(rm);
         walletUpdaterThread.start();
 
@@ -182,7 +182,7 @@ public class ServerMain {
         // salvataggio dati persistente
         try {
             jsonmng.saveAll(social);
-            social.close(config);
+            config.saveConfigData(social, rm);
         } catch (IOException e) {
             e.printStackTrace();
         }

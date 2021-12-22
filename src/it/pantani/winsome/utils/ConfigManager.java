@@ -6,6 +6,9 @@
 
 package it.pantani.winsome.utils;
 
+import it.pantani.winsome.RewardsManager;
+import it.pantani.winsome.SocialManager;
+
 import java.io.*;
 import java.util.Properties;
 
@@ -32,7 +35,10 @@ public class ConfigManager {
             prop.setProperty("currency_name_plural", "wincoins");
             prop.setProperty("multicast_address", "224.0.0.1");
             prop.setProperty("multicast_port", "6788");
+            prop.setProperty("percentage_reward_author", "70"); // %
+            prop.setProperty("percentage_reward_curator", "30"); // %
             prop.setProperty("rewards_check_timeout", "10000"); // ms
+            prop.setProperty("last_rewards_check", "0"); // ms
             prop.setProperty("last_post_id", "0");
             prop.store(out, CONFIG_COMMENT);
             out.close();
@@ -49,7 +55,7 @@ public class ConfigManager {
         return prop.getProperty(preference_name, DEFAULT_GETPREFERENCE);
     }
 
-    public void saveLastPostID(int updated) {
+    public void saveConfigData(SocialManager s, RewardsManager rm) {
         OutputStream out = null;
         try {
             out = new FileOutputStream(FOLDER_NAME+"/"+FILE_PATH);
@@ -57,10 +63,11 @@ public class ConfigManager {
             e.printStackTrace();
         }
         if(out == null) {
-            System.err.println("> Impossibile salvare last_post_id");
+            System.err.println("> Impossibile salvare dati persistenti del social in memoria.");
             return;
         }
-        prop.setProperty("last_post_id", String.valueOf(updated));
+        prop.setProperty("last_post_id", String.valueOf(s.last_post_id.intValue()));
+        prop.setProperty("last_rewards_check", String.valueOf(rm.last_rewards_check));
         try {
             prop.store(out, CONFIG_COMMENT);
         } catch(IOException e) {

@@ -41,7 +41,7 @@ public class JsonManager {
         if(createFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (wallets)");
         if(createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
         if(createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
-        if(createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
+        if(createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (posts)");
     }
 
     public void loadAll(SocialManager s) {
