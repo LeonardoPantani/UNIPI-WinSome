@@ -8,6 +8,11 @@ package it.pantani.winsome.entities;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Classe che rappresenta il portafoglio di un utente. Il bilancio (che può essere anche negativo, sarà
+ * la classe che implementa il wallet ad effettuare controlli) viene calcolato dalla lista di transazioni
+ * che un utente ha fatto.
+ */
 public class WinSomeWallet {
     private final String username;
     private final ConcurrentLinkedQueue<WinSomeTransaction> transactions;
@@ -21,8 +26,8 @@ public class WinSomeWallet {
         return username;
     }
 
-    public float getBalance() {
-        float balance = 0;
+    public double getBalance() {
+        double balance = 0;
         for(WinSomeTransaction t : transactions) {
             balance += t.getEdit();
         }
@@ -34,8 +39,8 @@ public class WinSomeWallet {
         return transactions;
     }
 
-    public float changeBalance(float edit) {
-        transactions.add(new WinSomeTransaction(edit));
+    public double changeBalance(double edit, String reason) {
+        transactions.add(new WinSomeTransaction(edit, reason));
 
         return getBalance();
     }

@@ -17,7 +17,6 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
 
@@ -31,6 +30,7 @@ public class InputHandler implements Runnable {
 
         while(!close) {
             String raw_request = in.nextLine();
+            if(raw_request.equals("")) continue;
             String[] temp = raw_request.split(" ");
 
             String request = temp[0];
@@ -38,7 +38,7 @@ public class InputHandler implements Runnable {
             System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
             switch (request) {
-                case "kickclient" -> {
+                case "kickclient": {
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <porta_client>");
                         break;
@@ -53,38 +53,50 @@ public class InputHandler implements Runnable {
                     }
 
                     kickClient(port);
+                    break;
                 }
-                case "kickallclients" -> {
+                case "kickallclients": {
                     kickAllClients();
+                    break;
                 }
-                case "listclients" -> {
+                case "listclients": {
                     listClients();
+                    break;
                 }
-                case "listusers" -> {
+                case "listusers": {
                     listUsers();
+                    break;
                 }
-                case "listfollowers" -> {
+                case "listfollowers": {
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <username>");
                         break;
                     }
                     listFollowers(arguments[0]);
+                    break;
                 }
-                case "listfollowing" -> {
+                case "listfollowing": {
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <username>");
                         break;
                     }
                     listFollowing(arguments[0]);
+                    break;
                 }
-                case "stopserver" -> {
+                case "stopserver": {
                     stopServer();
+                    break;
                 }
-                case "test" -> {
+                case "test": {
                     test(arguments);
+                    break;
                 }
-                case "help" -> {
+                case "help": {
                     help();
+                    break;
+                }
+                default: {
+                    unknownCommand();
                 }
             }
         }
@@ -212,7 +224,7 @@ public class InputHandler implements Runnable {
         }
 
         switch (arguments[0]) {
-            case "addfollower" -> {
+            case "addfollower": {
                 if (arguments.length != 3) {
                     System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <nuovo follower>");
                     break;
@@ -224,7 +236,7 @@ public class InputHandler implements Runnable {
                     e.printStackTrace();
                 }
             }
-            case "removefollower" -> {
+            case "removefollower": {
                 if (arguments.length != 3) {
                     System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <follower da rimuovere>");
                     break;
@@ -236,7 +248,7 @@ public class InputHandler implements Runnable {
                     e.printStackTrace();
                 }
             }
-            case "addfollowing" -> {
+            case "addfollowing": {
                 if (arguments.length != 3) {
                     System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <nuovo seguito>");
                     break;
@@ -246,7 +258,7 @@ public class InputHandler implements Runnable {
                 System.out.println("> Ora l'utente '" + arguments[1] + "' segue '" + arguments[2]+ "'");
             }
 
-            case "removefollowing" -> {
+            case "removefollowing": {
                 if (arguments.length != 3) {
                     System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <seguito da rimuovere>");
                     break;
@@ -256,12 +268,12 @@ public class InputHandler implements Runnable {
                 System.out.println("> L'utente '" + arguments[1] + "' non segue piu' '" + arguments[2]+ "'");
             }
 
-            case "changebal" -> {
+            case "changebal": {
                 if (arguments.length != 3) {
                     System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <cambiamento>");
                     break;
                 }
-                float change;
+                double change;
                 try {
                     change = Float.parseFloat(arguments[2]);
                 } catch(NumberFormatException e) {
@@ -272,12 +284,14 @@ public class InputHandler implements Runnable {
                     System.err.println("[!] L'utente '" + arguments[1] + "' non esiste");
                     break;
                 }
-                float newBalance = s.getWalletByUsername(arguments[1]).changeBalance(change);
-                System.out.print("> L'utente '" + arguments[1] + "' ha ora un bilancio di " + newBalance + " ");
-                if(newBalance != 1) System.out.println(c.getPreference("currency_name_plural"));
-                else System.out.println(c.getPreference("currency_name_singular"));
+                String reason = c.getPreference("default_reason_transaction");
+                if(reason == null) reason = "SYSTEM";
+                double newBalance = s.getWalletByUsername(arguments[1]).changeBalance(change, reason);
+                System.out.println("> L'utente '" + arguments[1] + "' ha ora un bilancio di " + s.getFormattedCurrency(newBalance));
             }
-            default -> System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
+            default: {
+                System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
+            }
         }
     }
 
@@ -306,5 +320,9 @@ public class InputHandler implements Runnable {
         System.out.println("stopserver             - Termina il server");
         System.out.println("test                   - Testa delle funzionalita' (debug)");
         System.out.println("help                   - Mostra questa schermata");
+    }
+
+    private void unknownCommand() {
+        System.out.println("> Comando sconosciuto, scrivi 'help' per una lista di comandi.");
     }
 }

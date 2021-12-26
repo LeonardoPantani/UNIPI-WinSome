@@ -8,45 +8,65 @@ package it.pantani.winsome.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Locale;
 
+/**
+ * Classe utilizzata sia da client che server perché contiene utili funzioni che permettono il funzionamento di WinSome.
+ */
 public class Utils {
-    public static final String web_address = "https://www.random.org/decimal-fractions/?num=1&dec=6&col=1&format=plain&rnd=new";
+    // indirizzo utilizzato per il recupero di valori casuali
+    public static final String web_address = "https://www.random.org/decimal-fractions/?num=1&dec=20&col=1&format=plain&rnd=new";
 
-    public static float generateRandomFloat() {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(web_address)).build();
-
-        HttpResponse<String> response;
+    /**
+     * Contatta il servizio esterno per ottenere un valore casuale e lo restituisce come numero double.
+     * @return il valore double ottenuto da remoto
+     */
+    public static double generateRandomValue() {
         try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch(IOException | InterruptedException e) {
-            e.printStackTrace();
-            return 0;
-        }
+            URL url = new URL(web_address);
+            URLConnection url_conn = url.openConnection();
 
-        return Float.parseFloat(response.body());
+            // apro uno stream
+            BufferedReader buf_read = new BufferedReader(new InputStreamReader(url_conn.getInputStream()));
+            String body = buf_read.readLine();
+            buf_read.close();
+
+            return Double.parseDouble(body);
+        } catch(IOException | NumberFormatException e) {
+            System.err.println("[!] Errore durante generazione di valore casuale. Motivo: " + e.getLocalizedMessage());
+        }
+        return 0;
     }
 
+    /**
+     * "Hack" che permette di inviare, dato uno stream, una stringa anche se contiene nuove righe.
+     * @param out lo stream su cui inviare la stringa
+     * @param send la stringa da inviare
+     */
     public static void send(PrintWriter out, String send) {
         int bytes = send.getBytes().length;
-        out.println(bytes);
-        out.println(send);
+        out.println(bytes); // invio prima la lunghezza della stringa...
+        out.println(send); // ... e poi la invio
     }
 
+    /**
+     * Permette di ricevere una stringa anche se contiene varie righe.
+     * @param in lo stream da cui ricevere la stringa
+     * @return la stringa ricevuta
+     * @throws IOException se la lunghezza della stringa inviata non è valida
+     */
     public static String receive(BufferedReader in) throws IOException {
         StringBuilder everything = new StringBuilder();
         try {
+            // ottengo la lunghezza della stringa che riceverò
             String dato = in.readLine();
             int l;
             try {
@@ -54,6 +74,8 @@ public class Utils {
             } catch(NumberFormatException e) {
                 return dato;
             }
+
+            // ricevo il dato (parto da -2 per evitare che la stringa venga tagliata)
             int i = -2;
             while(i < l) {
                 everything.append((char) in.read());
@@ -65,11 +87,27 @@ public class Utils {
         return everything.substring(0, everything.length() - 2);
     }
 
+    /**
+     * Restituisce una stringa contenente la data formattata partendo dai millisecondi UNIX
+     * @param date il tempo fornito in formato UNIX
+     * @return stringa rappresentante la data fornita in formato UNIX
+     */
     public static String getFormattedDate(long date) {
         Instant instant = Instant.ofEpochSecond(date/1000);
         DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
                                                         .withLocale(Locale.ITALY)
                                                         .withZone(ZoneId.systemDefault());
         return formatter.format(instant);
+    }
+
+    /**
+     * Approssima un numero al valore più vicino con determinate cifre dopo la virgola (precisione)
+     * @param input il numero da approssimare
+     * @param precision il numero di cifre dopo la virgola che si vogliono ottenere
+     * @return il numero approssimato
+     */
+    public static double roundC(double input, int precision) {
+        double multiplier = Math.pow(10, precision);
+        return Math.round(input * multiplier) / multiplier;
     }
 }

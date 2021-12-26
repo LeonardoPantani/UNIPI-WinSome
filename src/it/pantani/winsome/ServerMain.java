@@ -13,7 +13,9 @@ import it.pantani.winsome.rmi.WinSomeService;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
 import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.JsonManager;
+import it.pantani.winsome.utils.Utils;
 
+import javax.naming.ConfigurationException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -29,6 +31,7 @@ import java.util.concurrent.*;
 public class ServerMain {
     public static ConfigManager config;
     public static SocialManager social;
+    public static RewardsManager rewards;
     public static final ConcurrentLinkedQueue<Socket> listaSocket = new ConcurrentLinkedQueue<>();
     public static final ConcurrentHashMap<String, WinSomeSession> listaSessioni = new ConcurrentHashMap<>();
 
@@ -36,7 +39,6 @@ public class ServerMain {
     public static int server_port;
 
     public static void main(String[] args) {
-        System.out.println("> Server in fase di avvio...");
         System.out.println("> Lettura dati dal file di configurazione...");
         try {
             config = new ConfigManager();
@@ -52,7 +54,16 @@ public class ServerMain {
             System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
             return;
         }
-        System.out.println("> Social pronto.");
+
+        System.out.println("> Inizializzazione rewards...");
+        try {
+            rewards = new RewardsManager(config, social);
+            Thread rm = new Thread(rewards);
+            rm.start();
+        } catch(ConfigurationException e) {
+            System.err.println("[!] Inizializzazione fallita, " + e.getLocalizedMessage());
+            return;
+        }
 
         System.out.println("> Caricamento dati da json...");
         JsonManager jsonmng = new JsonManager();
@@ -82,6 +93,7 @@ public class ServerMain {
             System.out.println("> RMI pronto sulla porta " + rmi_port + ".");
         } catch (RemoteException | AlreadyBoundException e) {
             e.printStackTrace();
+            return;
         }
 
         // rmi callback
@@ -104,12 +116,8 @@ public class ServerMain {
             System.out.println("> RMI Callback pronto.");
         } catch (RemoteException | AlreadyBoundException e) {
             e.printStackTrace();
+            return;
         }
-
-        RewardsManager rm = new RewardsManager(config, social);
-        Thread walletUpdaterThread = new Thread(rm);
-        walletUpdaterThread.start();
-
 
         System.out.println("> Server in ascolto sulla porta " + server_port + ". Scrivi 'help' per una lista di comandi.");
 
@@ -121,6 +129,7 @@ public class ServerMain {
             serverSocket = new ServerSocket(server_port);
         } catch (IOException e) {
             e.printStackTrace();
+            return;
         }
 
         while(true) {
@@ -182,13 +191,13 @@ public class ServerMain {
         // salvataggio dati persistente
         try {
             jsonmng.saveAll(social);
-            config.saveConfigData(social, rm);
+            config.saveConfigData(social, rewards);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         // rewards manager stop
-        rm.stopExecution();
+        rewards.stopExecution();
 
         System.out.println("> Server terminato.");
     }

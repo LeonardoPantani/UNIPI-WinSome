@@ -10,6 +10,9 @@ import it.pantani.winsome.entities.WinSomePost;
 
 import java.util.Comparator;
 
+/**
+ * Semplice classe che implementa il metodo compare di due post, in modo da ordinarli per data di invio.
+ */
 public class PostComparator implements Comparator<WinSomePost> {
     @Override
     public int compare(WinSomePost o1, WinSomePost o2) {

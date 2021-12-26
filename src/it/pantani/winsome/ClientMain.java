@@ -12,6 +12,7 @@ import it.pantani.winsome.rmi.WinSomeCallbackInterface;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
 import it.pantani.winsome.utils.Utils;
 
+import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -64,7 +65,13 @@ public class ClientMain {
         boolean reqFailed = false;
 
         // Ascolto aggiornamenti wallet
-        WalletUpdateManager wum = new WalletUpdateManager(multicast_server_address, multicast_server_port);
+        WalletUpdateManager wum = null;
+        try {
+            wum = new WalletUpdateManager(multicast_server_address, multicast_server_port);
+        } catch(ConfigurationException e) {
+            System.err.println("[!] Inizializzazione WalletUpdateManager fallita. Motivo: " + e.getLocalizedMessage());
+            return;
+        }
         Thread walletCheckerThread = new Thread(wum);
         walletCheckerThread.start();
 
@@ -107,6 +114,7 @@ public class ClientMain {
                         reqFailed = false;
                     } else {
                         raw_request = lettore.nextLine();
+                        if(raw_request.equals("")) continue;
                     }
                     String[] temp = raw_request.split(" ");
                     String request = temp[0];
@@ -114,13 +122,13 @@ public class ClientMain {
                     System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
                     switch (request) {
-                        case "stopclient" -> {
+                        case "stopclient": {
                             socket.close();
                             out.close();
                             in.close();
                             break loopesterno;
                         }
-                        case "register" -> {
+                        case "register": {
                             if (arguments.length < 2 || arguments.length > 7) {
                                 System.err.println("[!] Comando errato, usa: register <username> <password> [lista di tag, max 5]");
                                 break;
@@ -128,8 +136,9 @@ public class ClientMain {
                             ArrayList<String> tags_list = new ArrayList<>(Arrays.asList(arguments).subList(2, arguments.length));
 
                             System.out.println("> Risposta server: " + stub.register(arguments[0], arguments[1], tags_list));
+                            break;
                         }
-                        case "login" -> {
+                        case "login": {
                             if (arguments.length != 2) {
                                 System.err.println("[!] Comando errato, usa: login <username> <password>");
                                 break;
@@ -158,22 +167,25 @@ public class ClientMain {
                                 listaFollower = stub.initializeFollowerList(username, arguments[1]);
                             }
                             System.out.println("[Server]> " + response);
+                            break;
                         }
-                        case "logout" -> {
+                        case "logout": {
                             out.println(raw_request);
                             String a = in.readLine();
                             System.out.println("[Server]> " + a);
-                            if (server != null && a.equalsIgnoreCase("logout effettuato")) {
+                            if (server != null && a.equalsIgnoreCase("logout di '" + username + "' effettuato")) {
                                 server.unregisterForCallback(username);
                                 UnicastRemoteObject.unexportObject(callbackobj, false);
                                 username = null;
                             }
+                            break;
                         }
-                        case "listusers" -> {
+                        case "listusers": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "listfollowers" -> {
+                        case "listfollowers": {
                             if (listaFollower == null) {
                                 System.out.println("> Nessun utente ti segue.");
                                 break;
@@ -181,31 +193,35 @@ public class ClientMain {
 
                             System.out.println("> LISTA FOLLOWERS (" + listaFollower.size() + "):");
                             for (String u : listaFollower) {
-                                System.out.println(u);
+                                System.out.println("* " + u);
                             }
+                            break;
                         }
-                        case "listfollowing" -> {
+                        case "listfollowing": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "follow" -> {
+                        case "follow": {
                             if (arguments.length != 1) {
                                 System.err.println("[!] Comando errato, usa: follow <username>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "unfollow" -> {
+                        case "unfollow": {
                             if (arguments.length != 1) {
                                 System.err.println("[!] Comando errato, usa: unfollow <username>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "post" -> {
-                            if(arguments.length < 2) {
+                        case "post": {
+                            if(arguments.length < 1) {
                                 System.err.println("[!] Comando errato, usa: post <titolo>|<contenuto>");
                                 break;
                             }
@@ -217,64 +233,74 @@ public class ClientMain {
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "blog" -> {
+                        case "blog": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "rewin" -> {
+                        case "rewin": {
                             if(arguments.length != 1) {
                                 System.err.println("[!] Comando errato, usa: rewin <id post>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "rate" -> {
+                        case "rate": {
                             if(arguments.length != 2) {
                                 System.err.println("[!] Comando errato, usa: rate <id post> <+1/-1>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "showfeed" -> {
+                        case "showfeed": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "showpost" -> {
+                        case "showpost": {
                             if(arguments.length != 1) {
                                 System.err.println("[!] Comando errato, usa: showpost <id post>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "comment" -> {
+                        case "comment": {
                             if(arguments.length < 2) {
                                 System.err.println("[!] Comando errato, usa: comment <id post> <commento>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "delete" -> {
+                        case "delete": {
                             if(arguments.length != 1) {
                                 System.err.println("[!] Comando errato, usa: delete <id post>");
                                 break;
                             }
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
+                            break;
                         }
-                        case "wallet" -> {
+                        case "wallet": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        case "walletbtc" -> {
+                        case "walletbtc": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
+                            break;
                         }
-                        default -> {
+                        default: {
                             out.println(raw_request);
                             System.out.println("[Server]> " + in.readLine());
                         }

@@ -13,6 +13,7 @@ import it.pantani.winsome.entities.WinSomeWallet;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.utils.ConfigManager;
 import it.pantani.winsome.utils.PostComparator;
+import it.pantani.winsome.utils.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +34,11 @@ public class SocialManager {
     private ConcurrentHashMap<String, ArrayList<String>> followingList; // ridondanza
     private ConcurrentHashMap<Integer, WinSomePost> postList;
     private ConcurrentHashMap<String, WinSomeWallet> walletList;
+
+    private String currency_singular;
+    private String currency_plural;
+
+    private final int decimal_places;
 
     public SocialManager(ConfigManager config) throws IOException {
         this.config = config;
@@ -55,6 +61,14 @@ public class SocialManager {
         }
         if(id_parsed < 0) throw new IOException("numero negativo");
         last_post_id = new AtomicInteger(id_parsed);
+
+        currency_singular = config.getPreference("currency_name_singular");
+        if(currency_singular == null) currency_singular = "wincoin";
+
+        currency_plural = config.getPreference("currency_name_plural");
+        if(currency_plural == null) currency_plural = "wincoins";
+
+        decimal_places = Integer.parseInt(config.getPreference("currency_decimal_places"));
     }
 
     public int createPost(String username, String post_title, String post_content) throws PostTitleTooLongException, PostContentTooLongException, UserNotFoundException {
@@ -109,18 +123,18 @@ public class SocialManager {
         ConcurrentLinkedQueue<String> q = p.getRewinUsers();
 
         ret = "[Post #" + p.getPostID() + "]\n";
-        if(showRewin && q.size() != 0) ret += "* post rewinnato da " + q.size() + " "; if(q.size() == 1) { ret += "utente"; } else { ret += "utenti"; } ret += " *\n";
+        if(showRewin && q.size() != 0) { ret += "* post rewinnato da " + q.size() + " "; if(q.size() == 1) { ret += "utente"; } else { ret += "utenti"; } ret += " *\n"; }
         ret += "Titolo: " + p.getPostTitle() + "\n";
         ret += "Contenuto: " + p.getPostContent() + "\n";
         ret += "Autore: " + p.getAuthor() + "\n";
-        ret += "Voti: " + p.getUpvotes() + " ";
+        ret += "Voti (" + p.getTotalVotes() + "): " + p.getUpvotes() + " ";
         if(p.getUpvotes() == 1) ret += "positivo"; else ret += "positivi";
         ret += ", " + p.getDownvotes() + " ";
         if(p.getDownvotes() == 1) ret += "negativo"; else ret += "negativi";
         ret += "\n";
         ret += "Data: " + getFormattedDate(p.getDateSent()) + "\n";
         if(lista_commenti != null) {
-            ret += "- Commenti (" + lista_commenti.size() + "):\n";
+            ret += "Commenti (" + lista_commenti.size() + "):\n";
             for(WinSomeComment c : lista_commenti) {
                 ret += "- " + c.getAuthor() + ": " + c.getContent() + "\n";
             }
@@ -336,5 +350,19 @@ public class SocialManager {
 
     public int getFollowingCount(String username) {
         return followingList.get(username).size();
+    }
+
+    public String getFormattedCurrency(double input) {
+        String output = String.format("%." + decimal_places + "f", Utils.roundC(input, decimal_places));
+
+        if(input == 1) {
+            return output+" "+currency_singular;
+        } else {
+            return output+" "+currency_plural;
+        }
+    }
+
+    public String getFormattedValue(double input) {
+        return String.format("%." + decimal_places + "f", Utils.roundC(input, decimal_places));
     }
 }

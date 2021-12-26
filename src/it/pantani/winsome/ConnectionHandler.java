@@ -69,41 +69,47 @@ public class ConnectionHandler implements Runnable {
                     System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
                     switch (request) {
-                        case "login" -> {
+                        case "login": {
                             if (arguments.length != 2) {
                                 out.println("Comando errato, usa: login <username> <password>");
                                 break;
                             }
                             login(arguments[0], arguments[1]);
+                            break;
                         }
-                        case "logout" -> {
-                            if (arguments.length != 1) {
-                                out.println("Comando errato, usa: logout <username>");
+                        case "logout": {
+                            if(clientSession == null) {
+                                out.println("non hai effettuato il login");
                                 break;
                             }
-                            logout(arguments[0]);
+                            logout(clientSession.getUsername());
+                            break;
                         }
-                        case "listusers" -> {
+                        case "listusers": {
                             listusers();
+                            break;
                         }
-                        case "listfollowing" -> {
+                        case "listfollowing": {
                             listfollowing();
+                            break;
                         }
-                        case "follow" -> {
+                        case "follow": {
                             if (arguments.length != 1) {
                                 out.println("Comando errato, usa: follow <username>");
                                 break;
                             }
                             follow(arguments[0]);
+                            break;
                         }
-                        case "unfollow" -> {
+                        case "unfollow": {
                             if (arguments.length != 1) {
                                 out.println("Comando errato, usa: unfollow <username>");
                                 break;
                             }
                             unfollow(arguments[0]);
+                            break;
                         }
-                        case "post" -> {
+                        case "post": {
                             String req_body = raw_request.substring(5);
                             String[] text = req_body.split("\\|");
                             if(text.length != 2) {
@@ -111,11 +117,13 @@ public class ConnectionHandler implements Runnable {
                                 break;
                             }
                             post(text[0], text[1]);
+                            break;
                         }
-                        case "blog" -> {
+                        case "blog": {
                             blog();
+                            break;
                         }
-                        case "rewin" -> {
+                        case "rewin": {
                             if(arguments.length != 1) {
                                 out.println("Comando errato, usa: rewin <id post>");
                                 break;
@@ -125,8 +133,9 @@ public class ConnectionHandler implements Runnable {
                             } catch(NumberFormatException e) {
                                 out.println("Comando errato, usa: rewin <id post>");
                             }
+                            break;
                         }
-                        case "rate" -> {
+                        case "rate": {
                             if(arguments.length != 2) {
                                 out.println("Comando errato, usa: rate <id post> <+1/-1>");
                                 break;
@@ -136,11 +145,13 @@ public class ConnectionHandler implements Runnable {
                             } catch(NumberFormatException e) {
                                 out.println("Comando errato, usa: rate <id post> <+1/-1>");
                             }
+                            break;
                         }
-                        case "showfeed" -> {
+                        case "showfeed": {
                             showfeed();
+                            break;
                         }
-                        case "showpost" -> {
+                        case "showpost": {
                             if(arguments.length != 1) {
                                 System.err.println("Comando errato, usa: showpost <id post>");
                                 break;
@@ -150,8 +161,9 @@ public class ConnectionHandler implements Runnable {
                             } catch(NumberFormatException e) {
                                 out.println("Comando errato, usa: showpost <id post>");
                             }
+                            break;
                         }
-                        case "comment" -> {
+                        case "comment": {
                             if(arguments.length < 2) {
                                 System.err.println("Comando errato, usa: comment <id post> <testo>");
                                 break;
@@ -168,8 +180,9 @@ public class ConnectionHandler implements Runnable {
                             } catch(NumberFormatException e) {
                                 out.println("Comando errato, usa: comment <id post> <testo>");
                             }
+                            break;
                         }
-                        case "delete" -> {
+                        case "delete": {
                             if(arguments.length != 1) {
                                 System.err.println("Comando errato, usa: delete <id post>");
                                 break;
@@ -179,14 +192,20 @@ public class ConnectionHandler implements Runnable {
                             } catch(NumberFormatException e) {
                                 out.println("Comando errato, usa: delete <id post>");
                             }
+                            break;
                         }
-                        case "wallet" -> {
+                        case "wallet": {
                             getWallet();
+                            break;
                         }
-                        case "walletbtc" -> {
+                        case "walletbtc": {
                             getWalletInBitcoin();
+                            break;
                         }
-                        default -> invalidcmd();
+                        default: {
+                            invalidcmd();
+                            break;
+                        }
                     }
                 } else {
                     break;
@@ -248,7 +267,7 @@ public class ConnectionHandler implements Runnable {
                 if (wss.getSessionSocket() == clientSocket) { // deve corrispondere il socket della sessione
                     ServerMain.listaSessioni.remove(username);
                     clientSession = null;
-                    out.println("logout effettuato");
+                    out.println("logout di '" + username + "' effettuato");
                 } else {
                     out.println("non hai effettuato il login"); // se un altro client prova a fare logout
                 }
@@ -567,26 +586,24 @@ public class ConnectionHandler implements Runnable {
         }
         SocialManager s = ServerMain.social;
         ConfigManager c = ServerMain.config;
+        int precision = Integer.parseInt(c.getPreference("currency_decimal_places"));
         String current_user = clientSession.getUsername();
 
         WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
         ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
 
         StringBuilder output = new StringBuilder("WALLET DI " + current_user + ":\n");
-        float money;
-        output.append("Bilancio: ").append(user_wallet.getBalance());
-        if(user_wallet.getBalance() != 1) output.append(" ").append(c.getPreference("currency_name_plural"));
-        else output.append(" ").append(c.getPreference("currency_name_singular"));
+        double money;
+        output.append("Bilancio: ").append(s.getFormattedCurrency(user_wallet.getBalance()));
         output.append("\n");
         if(user_transactions.size() != 0) {
             output.append("TRANSAZIONI:\n");
             for(WinSomeTransaction t : user_transactions) {
                 output.append("* ");
                 money = t.getEdit();
-                if(money >= 0) output.append("+").append(money);
-                else output.append(money);
-                if(money != 1) output.append(" ").append(c.getPreference("currency_name_plural"));
-                else output.append(" ").append(c.getPreference("currency_name_singular"));
+                if(money >= 0) output.append("+").append(s.getFormattedCurrency(money));
+                else output.append(s.getFormattedCurrency(money));
+                output.append(" | Motivo: ").append(t.getReason());
                 output.append(" | Data: ").append(getFormattedDate(t.getDate())).append("\n");
             }
         }
@@ -601,24 +618,23 @@ public class ConnectionHandler implements Runnable {
         }
         SocialManager s = ServerMain.social;
         ConfigManager c = ServerMain.config;
+        int precision = Integer.parseInt(c.getPreference("currency_decimal_places"));
         String current_user = clientSession.getUsername();
 
         WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
         ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
 
         long calcTimeStart = System.currentTimeMillis();
-        float conversionRate = Utils.generateRandomFloat();
+        double conversionRate = Utils.generateRandomValue();
         System.out.println("[CH #" + chCode + "]> Rateo di conversione (" + conversionRate + ") ottenuto in " + (System.currentTimeMillis() - calcTimeStart) + "ms, trasmissione.");
-        float money = user_wallet.getBalance();
-        float moneyInBitcoin = money * conversionRate;
+        double money = user_wallet.getBalance();
+        double moneyInBitcoin = money * conversionRate;
 
         String output = "WALLET DI " + current_user + ":\n";
-        output += "Bilancio: " + user_wallet.getBalance();
-        if(user_wallet.getBalance() != 1) output += " " + c.getPreference("currency_name_plural");
-        else output += " " + c.getPreference("currency_name_singular");
+        output += "Bilancio: " + s.getFormattedCurrency(user_wallet.getBalance());
         output += "\n";
-        output += "Tasso di conversione: " + conversionRate + " (aggiornato al " + getFormattedDate(calcTimeStart) + ")\n";
-        output += "Bilancio in Bitcoin: " + moneyInBitcoin + "\n";
+        output += "Tasso di conversione: " + s.getFormattedValue(conversionRate) + " (aggiornato al " + getFormattedDate(calcTimeStart) + ")\n";
+        output += "Bilancio in Bitcoin: " + s.getFormattedValue(moneyInBitcoin) + "\n";
 
         Utils.send(out, output);
     }

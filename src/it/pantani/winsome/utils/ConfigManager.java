@@ -33,8 +33,12 @@ public class ConfigManager {
             prop.setProperty("post_max_content_length", "500");
             prop.setProperty("currency_name_singular", "wincoin");
             prop.setProperty("currency_name_plural", "wincoins");
+            prop.setProperty("currency_decimal_places", "2"); // cifre decimali
             prop.setProperty("multicast_address", "224.0.0.1");
             prop.setProperty("multicast_port", "6788");
+            prop.setProperty("default_reason_transaction", "SYSTEM");
+            prop.setProperty("author_reward_reason_transaction", "Author reward for post #{post}");
+            prop.setProperty("curator_reward_reason_transaction", "Curator reward for post #{post}");
             prop.setProperty("percentage_reward_author", "70"); // %
             prop.setProperty("percentage_reward_curator", "30"); // %
             prop.setProperty("rewards_check_timeout", "10000"); // ms
