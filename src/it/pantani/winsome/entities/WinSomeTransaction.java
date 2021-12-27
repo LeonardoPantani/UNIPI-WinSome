@@ -6,10 +6,6 @@
 
 package it.pantani.winsome.entities;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
-
 /**
  * Classe che rappresenta una singola transazione del social WinSome. Contiene ovviamente il
  * cambiamento (change) al wallet dell'utente, la data della transazione e la causale.

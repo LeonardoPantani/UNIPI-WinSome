@@ -10,27 +10,34 @@ import it.pantani.winsome.entities.WinSomeSession;
 import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.utils.ConfigManager;
+import it.pantani.winsome.utils.Utils;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 
 import static it.pantani.winsome.utils.Utils.getFormattedDate;
 
+/**
+ * Classe che gestisce l'input di richieste del server. Permette di eseguire alcuni comandi per vedere l'andamento del server.
+ * E' ad utilizzo amministrativo e di gestione, per questo sarà poco commentata perché non molto rilevante.
+ */
 public class InputHandler implements Runnable {
-    private boolean close = false;
-    private Scanner in;
+    private volatile boolean stop = false;
 
-    @Override
+    /**
+     * Processo che viene eseguito all'avvio del server che aspetta l'input dell'utente.
+     */
     public void run() {
-        in = new Scanner(System.in);
+        Scanner in = new Scanner(System.in);
 
-        while(!close) {
+        while(!stop) {
             String raw_request = in.nextLine();
-            if(raw_request.equals("")) continue;
+            if(raw_request.equals("")) continue; // se l'utente ha premuto invio continuo
             String[] temp = raw_request.split(" ");
 
             String request = temp[0];
@@ -38,7 +45,7 @@ public class InputHandler implements Runnable {
             System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
             switch (request) {
-                case "kickclient": {
+                case "kickclient": { // espelle un client
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <porta_client>");
                         break;
@@ -55,19 +62,19 @@ public class InputHandler implements Runnable {
                     kickClient(port);
                     break;
                 }
-                case "kickallclients": {
+                case "kickallclients": { // espelle tutti i client
                     kickAllClients();
                     break;
                 }
-                case "listclients": {
+                case "listclients": { // mostra una lista di client connessi (con username e data di login)
                     listClients();
                     break;
                 }
-                case "listusers": {
+                case "listusers": { // mostra una lista di utenti
                     listUsers();
                     break;
                 }
-                case "listfollowers": {
+                case "listfollowers": { // mostra i followers di un certo utente
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <username>");
                         break;
@@ -75,7 +82,7 @@ public class InputHandler implements Runnable {
                     listFollowers(arguments[0]);
                     break;
                 }
-                case "listfollowing": {
+                case "listfollowing": { // mostra gli utenti che un certo utente segue
                     if (arguments.length != 1) {
                         System.err.println("[!] Utilizzo comando errato: " + request + " <username>");
                         break;
@@ -83,19 +90,60 @@ public class InputHandler implements Runnable {
                     listFollowing(arguments[0]);
                     break;
                 }
-                case "stopserver": {
-                    stopServer();
+                case "stopserver": { // ferma il server (è l'unico modo che c'è perché i dati vengano salvati!)
+                    stopServer(in);
                     break;
                 }
-                case "test": {
-                    test(arguments);
+                case "addfollower": { // aggiunge un follower (può anche non esistere)
+                    if (arguments.length != 2) {
+                        System.err.println("[!] Argomento non valido: addfollower <username> <nuovo follower>");
+                        break;
+                    }
+                    addFollower(arguments[0], arguments[1]);
                     break;
                 }
-                case "help": {
+                case "removefollower": { // rimuove un follower
+                    if (arguments.length != 2) {
+                        System.err.println("[!] Argomento non valido: removefollower <username> <follower da rimuovere>");
+                        break;
+                    }
+                    removeFollower(arguments[0], arguments[1]);
+                    break;
+                }
+                case "addfollowing": { // fa seguire all'utente un altro utente (può anche non esistere)
+                    if (arguments.length != 2) {
+                        System.err.println("[!] Argomento non valido: addfollowing <username> <nuovo seguito>");
+                        break;
+                    }
+                    addFollowing(arguments[0], arguments[1]);
+                    break;
+                }
+                case "removefollowing": { // non fa seguire più all'utente un altro utente
+                    if (arguments.length != 2) {
+                        System.err.println("[!] Argomento non valido: removefollowing <username> <following da rimuovere>");
+                        break;
+                    }
+                    removeFollowing(arguments[0], arguments[1]);
+                    break;
+                }
+                case "changebal": { // cambia il bilancio di un utente
+                    if (arguments.length != 2) {
+                        System.err.println("[!] Argomento non valido: changebal <username> <cambiamento>");
+                        break;
+                    }
+
+                    try {
+                        changeBalance(arguments[0], Double.parseDouble(arguments[1]));
+                    } catch(NumberFormatException e) {
+                        System.err.println("[!] Argomento non valido: changebal <username> <cambiamento>");
+                    }
+                    break;
+                }
+                case "help": { // mostra una lista di comandi
                     help();
                     break;
                 }
-                default: {
+                default: { // se viene digitato un comando non valido
                     unknownCommand();
                 }
             }
@@ -103,11 +151,11 @@ public class InputHandler implements Runnable {
     }
 
     private void kickClient(int client_port) {
-        boolean trovato = false;
+        boolean found_client = false;
 
         for(Socket x : ServerMain.listaSocket) {
             if(x.getPort() == client_port) {
-                trovato = true;
+                found_client = true;
                 try {
                     x.close();
                 } catch (IOException e) {
@@ -117,13 +165,12 @@ public class InputHandler implements Runnable {
             }
         }
 
-        if(trovato) {
+        if(found_client) {
             System.out.println("> Connessione chiusa!");
         } else {
             System.err.println("[!] Impossibile trovare un client con porta: " + client_port);
         }
     }
-
 
     private void kickAllClients() {
         for(Socket x : ServerMain.listaSocket) {
@@ -170,156 +217,133 @@ public class InputHandler implements Runnable {
         for(WinSomeUser u : s.getUserList().values()) {
             System.out.print("- " + u.getUsername());
             user_tags_list = u.getTags_list();
+
+            System.out.print(" | Bilancio: " + s.getFormattedCurrency(s.getWalletByUsername(u.getUsername()).getBalance()));
+            System.out.print(" | Data reg.: " + Utils.getFormattedDate(u.getCreationDate()));
+            System.out.print(" | Tags: ");
             if(user_tags_list.size() != 0) {
-                System.out.println("  " + user_tags_list);
+                System.out.println(user_tags_list);
             } else {
-                System.out.println("  (nessun tag specificato)");
+                System.out.println("(nessun tag specificato)");
             }
         }
     }
 
-    private void listFollowers(String utente) {
+    private void listFollowers(String user) {
         SocialManager s = ServerMain.social;
-        if(!s.findUser(utente)) {
-            System.out.println("[!] Utente '" + utente + "' non valido.");
+        if(!s.findUser(user)) {
+            System.out.println("[!] Utente '" + user + "' non valido.");
             return;
         }
-        ArrayList<String> list = s.getFollowers(utente);
-        if(list == null) {
-            System.out.println("> '" + utente + "' non e' seguito da alcun utente.");
+        ArrayList<String> user_followers_list = s.getFollowers(user);
+        if(user_followers_list == null) {
+            System.out.println("> '" + user + "' non e' seguito da alcun utente.");
             return;
         }
 
-        System.out.println("> UTENTI CHE SEGUONO " + utente + " (" + list.size() + "):");
-        for(String u : list) {
+        System.out.println("> UTENTI CHE SEGUONO '" + user.toUpperCase(Locale.ROOT) + "' (" + user_followers_list.size() + "):");
+        for(String u : user_followers_list) {
             System.out.println("* " + u);
         }
     }
 
-    private void listFollowing(String utente) {
+    private void listFollowing(String user) {
         SocialManager s = ServerMain.social;
-        if(!s.findUser(utente)) {
-            System.out.println("[!] Utente '" + utente + "' non valido.");
+        if(!s.findUser(user)) {
+            System.out.println("[!] Utente '" + user + "' non valido.");
             return;
         }
-        ArrayList<String> list = s.getFollowing(utente);
-        if(list == null) {
-            System.out.println("> '" + utente + "' non segue alcun utente.");
+        ArrayList<String> user_following_list = s.getFollowing(user);
+        if(user_following_list == null) {
+            System.out.println("> '" + user + "' non segue alcun utente.");
             return;
         }
 
-        System.out.println("> UTENTI CHE " + utente + " SEGUE (" + list.size() + "):");
-        for(String u : list) {
+        System.out.println("> UTENTI CHE '" + user.toUpperCase(Locale.ROOT) + "' SEGUE (" + user_following_list.size() + "):");
+        for(String u : user_following_list) {
             System.out.println("* " + u);
         }
     }
 
-    private void test(String[] arguments) {
+    private void addFollower(String user, String new_follower) {
+        try {
+            WinSomeCallback.notifyFollowerUpdate(user, "+" + new_follower);
+            System.out.println("> Aggiunto a '" + user + "' il follower '" + new_follower + "'");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removeFollower(String user, String to_remove_follower) {
+        try {
+            WinSomeCallback.notifyFollowerUpdate(user, "-" + to_remove_follower);
+            System.out.println("> Rimosso a '" + user + "' il follower '" + to_remove_follower + "'");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addFollowing(String user, String new_following) {
         SocialManager s = ServerMain.social;
+
+        s.addFollower(new_following, user);
+        s.addFollowing(user, new_following);
+        System.out.println("> Ora l'utente '" + user + "' segue '" + new_following + "'");
+    }
+
+    private void removeFollowing(String user, String to_remove_following) {
+        SocialManager s = ServerMain.social;
+
+        s.removeFollower(to_remove_following, user);
+        s.removeFollowing(user, to_remove_following);
+        System.out.println("> Ora l'utente '" + user + "' non segue piu' '" + to_remove_following + "'");
+    }
+
+    private void changeBalance(String user, double edit) {
+        SocialManager s = ServerMain.social;
+        if(s.getUser(user) == null) {
+            System.err.println("[!] L'utente '" + user + "' non esiste");
+            return;
+        }
+
         ConfigManager c = ServerMain.config;
-
-        if(arguments.length < 1) {
-            System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
-            return;
-        }
-
-        switch (arguments[0]) {
-            case "addfollower": {
-                if (arguments.length != 3) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <nuovo follower>");
-                    break;
-                }
-                try {
-                    WinSomeCallback.notifyFollowerUpdate(arguments[1], "+" + arguments[2]);
-                    System.out.println("> Aggiunto a '" + arguments[1] + "' il follower '" + arguments[2]+ "'");
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-            case "removefollower": {
-                if (arguments.length != 3) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <follower da rimuovere>");
-                    break;
-                }
-                try {
-                    WinSomeCallback.notifyFollowerUpdate(arguments[1], "-" + arguments[2]);
-                    System.out.println("> Rimosso a '" + arguments[1] + "' il follower '" + arguments[2]+ "'");
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-            case "addfollowing": {
-                if (arguments.length != 3) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <nuovo seguito>");
-                    break;
-                }
-                s.addFollower(arguments[2], arguments[1]);
-                s.addFollowing(arguments[1], arguments[2]);
-                System.out.println("> Ora l'utente '" + arguments[1] + "' segue '" + arguments[2]+ "'");
-            }
-
-            case "removefollowing": {
-                if (arguments.length != 3) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <seguito da rimuovere>");
-                    break;
-                }
-                s.removeFollower(arguments[2], arguments[1]);
-                s.removeFollowing(arguments[1], arguments[2]);
-                System.out.println("> L'utente '" + arguments[1] + "' non segue piu' '" + arguments[2]+ "'");
-            }
-
-            case "changebal": {
-                if (arguments.length != 3) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <cambiamento>");
-                    break;
-                }
-                double change;
-                try {
-                    change = Float.parseFloat(arguments[2]);
-                } catch(NumberFormatException e) {
-                    System.err.println("[!] Argomento non valido: test " + arguments[0] + " <username> <cambiamento>");
-                    break;
-                }
-                if(s.getUser(arguments[1]) == null) {
-                    System.err.println("[!] L'utente '" + arguments[1] + "' non esiste");
-                    break;
-                }
-                String reason = c.getPreference("default_reason_transaction");
-                if(reason == null) reason = "SYSTEM";
-                double newBalance = s.getWalletByUsername(arguments[1]).changeBalance(change, reason);
-                System.out.println("> L'utente '" + arguments[1] + "' ha ora un bilancio di " + s.getFormattedCurrency(newBalance));
-            }
-            default: {
-                System.err.println("[!] Uso comando errato. Vedi codice per dettagli.");
-            }
-        }
+        String reason = c.getPreference("default_reason_transaction");
+        if(reason == null) reason = "SYSTEM";
+        double newBalance = s.getWalletByUsername(user).changeBalance(edit, reason);
+        System.out.println("> L'utente '" + user + "' ha ora un bilancio di " + s.getFormattedCurrency(newBalance));
     }
 
-    private void stopServer() {
+    private void stopServer(Scanner in) {
         String check;
 
         System.out.print("> Sei sicuro di voler terminare il server? (S/N): ");
         check = in.nextLine();
         if(check.equalsIgnoreCase("S")) {
             System.out.println("> Server in arresto...");
-            close = true;
+            stop = true;
             try {
+                // chiudendolo da qui, nel main sarà lanciata una IOException che mi permetterà di uscire dal ciclo infinito
                 ServerMain.serverSocket.close();
             } catch (IOException ignored) { }
         }
     }
 
     private void help() {
+        ConfigManager c = ServerMain.config;
         System.out.println("> LISTA COMANDI:");
-        System.out.println("kickclient <porta>     - Chiude forzatamente la connessione con un client");
-        System.out.println("kickallclients         - Chiude forzatamente la connessione a tutti i client");
-        System.out.println("listclients            - Mostra la lista di clients connessi");
-        System.out.println("listusers              - Mostra la lista degli utenti registrati");
-        System.out.println("listfollowers <utente> - Mostra gli utenti che seguono <utente>");
-        System.out.println("listfollowing <utente> - Mostra gli utenti seguiti da <utente>");
-        System.out.println("stopserver             - Termina il server");
-        System.out.println("test                   - Testa delle funzionalita' (debug)");
-        System.out.println("help                   - Mostra questa schermata");
+        System.out.println("kickclient <porta>                   - Chiude forzatamente la connessione con un client");
+        System.out.println("kickallclients                       - Chiude forzatamente la connessione a tutti i client");
+        System.out.println("listclients                          - Mostra la lista di clients connessi");
+        System.out.println("listusers                            - Mostra la lista degli utenti registrati");
+        System.out.println("listfollowers <utente>               - Mostra gli utenti che seguono <utente>");
+        System.out.println("listfollowing <utente>               - Mostra gli utenti seguiti da <utente>");
+        System.out.println("addfollower <utente> <nuovo>         - Aggiunge a <utente> il follower <nuovo>");
+        System.out.println("removefollower <utente> <follower>   - Rimuove a <utente> il follower <follower>");
+        System.out.println("addfollowing <utente> <nuovo>        - Fa seguire a <utente> l'utente <nuovo>");
+        System.out.println("removefollowing <utente> <following> - Fa smettere a <utente> di seguire l'utente <following>");
+        System.out.println("changebal <utente> <cambiamento>     - Aggiunge una transazione di <cambiamento> " + c.getPreference("currency_name_plural") + " a <utente>");
+        System.out.println("stopserver                           - Termina il server");
+        System.out.println("help                                 - Mostra questa schermata");
     }
 
     private void unknownCommand() {

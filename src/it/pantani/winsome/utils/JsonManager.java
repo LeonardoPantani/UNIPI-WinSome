@@ -24,26 +24,36 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class JsonManager {
-    private static final String FOLDER_NAME = "data"; // name of folder
+    private static final String FOLDER_NAME = "data"; // nome cartella
 
-    private static final String USER_DATA_PATH = "user_data.json"; // path to json file
-    private static final String FOLLOWERS_DATA_PATH = "followers_data.json"; // path to json file
-    private static final String FOLLOWING_DATA_PATH = "following_data.json"; // path to json file
-    private static final String POSTS_DATA_PATH = "posts_data.json"; // path to json file
-    private static final String WALLETS_DATA_PATH = "wallets_data.json"; // path to json file
+    // percorsi ai file json
+    private static final String USER_DATA_PATH = "user_data.json";
+    private static final String FOLLOWERS_DATA_PATH = "followers_data.json";
+    private static final String FOLLOWING_DATA_PATH = "following_data.json";
+    private static final String POSTS_DATA_PATH = "posts_data.json";
+    private static final String WALLETS_DATA_PATH = "wallets_data.json";
 
     private final Gson gson;
     private JsonReader reader;
 
+    /**
+     * Costruttore che inizializza l'oggetto Gson (che permette di salvare oggetti e recuperarli da un file json). Inoltre,
+     * crea i file che salvano le varie strutture dati per garantire persistenza al server. I file vengono creati
+     * la prima volta nella cartella e con il nome specificato nelle costanti sopra, se non esistono già.
+     */
     public JsonManager() {
         gson = new Gson();
-        if(createFile(FOLDER_NAME+"/"+ USER_DATA_PATH) != 0) System.err.println("[!] Errore creazione file dati utente");
-        if(createFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (wallets)");
-        if(createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (followers)");
-        if(createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (following)");
-        if(createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH) != 0) System.err.println("[!] Errore creazione file relazione (posts)");
+        if(!createFile(FOLDER_NAME+"/"+ USER_DATA_PATH)) System.err.println("[!] Errore creazione file dati utente");
+        if(!createFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (wallets)");
+        if(!createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (followers)");
+        if(!createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (following)");
+        if(!createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (posts)");
     }
 
+    /**
+     * Utile per non dover chiamare tutti le funzioni una alla volta.
+     * @param s l'oggetto social
+     */
     public void loadAll(SocialManager s) {
         loadUserData(s);
         loadWalletsData(s);
@@ -51,6 +61,10 @@ public class JsonManager {
         loadRelationsData(s);
     }
 
+    /**
+     * Carica i dati utente
+     * @param s l'oggetto social
+     */
     public void loadUserData(SocialManager s) {
         String input = getFromFile(FOLDER_NAME+"/"+ USER_DATA_PATH);
         if(input == null) return;
@@ -64,6 +78,10 @@ public class JsonManager {
         s.setUserList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
     }
 
+    /**
+     * Carica i dati dei post
+     * @param s l'oggetto social
+     */
     public void loadPostData(SocialManager s) {
         String input = getFromFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH);
         if(input == null) return;
@@ -77,6 +95,10 @@ public class JsonManager {
         s.setPostList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
     }
 
+    /**
+     * Carica i dati dei portafogli
+     * @param s l'oggetto social
+     */
     public void loadWalletsData(SocialManager s) {
         String input = getFromFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH);
         if(input == null) return;
@@ -90,6 +112,10 @@ public class JsonManager {
         s.setWalletList(gson.fromJson(input, listaDelMioOggettoClasse)); // importazione nel social
     }
 
+    /**
+     * Carica i dati dei followers e following
+     * @param s l'oggetto social
+     */
     public void loadRelationsData(SocialManager s) {
         // FOLLOWERS
         String input = getFromFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH);
@@ -116,6 +142,11 @@ public class JsonManager {
         }
     }
 
+    /**
+     * Salva tutti i file per garantire la persistenza del server.
+     * @param s l'oggetto social
+     * @throws IOException in caso di errori con il salvataggio dei dati
+     */
     public void saveAll(SocialManager s) throws IOException {
         saveInFile(FOLDER_NAME+"/"+ USER_DATA_PATH, s.getUserList());
         saveInFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH, s.getWalletList());
@@ -126,6 +157,12 @@ public class JsonManager {
         saveInFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH, s.getPostList());
     }
 
+    /**
+     * Salva in un file un determinato oggetto, che viene convertito in json.
+     * @param path il percorso del file in cui salvare l'oggetto
+     * @param structure l'oggetto da salvare
+     * @throws IOException in caso di errori con il salvataggio dei dati
+     */
     private void saveInFile(String path, Object structure) throws IOException {
         String toSave = gson.toJson(structure);
 
@@ -144,6 +181,11 @@ public class JsonManager {
         dest.close();
     }
 
+    /**
+     * Legge un file dinamicamente
+     * @param path il percorso del file da leggere
+     * @return il contenuto del file
+     */
     private String getFromFile(String path) {
         // leggo dal file
         ReadableByteChannel src;
@@ -188,18 +230,23 @@ public class JsonManager {
         return input;
     }
 
-    private int createFile(String path) {
-        boolean ignored = new File(FOLDER_NAME).mkdirs(); // sennò genera un warning
+    /**
+     * Crea un file, se non esiste
+     * @param path il percorso del nuovo file
+     * @return vero se il file viene creato, falso altrimenti
+     */
+    private boolean createFile(String path) {
+        boolean ignored = new File(FOLDER_NAME).mkdirs(); // genero la cartella, se non esiste già
 
         try {
             File f = new File(path);
-            if(!f.exists() && !f.createNewFile()) {
-                return -1;
+            if(!f.exists() && !f.createNewFile()) { // se il file non esiste e non è stato creato dò errore
+                return false;
             }
-            return 0;
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
-            return -1;
+            return false;
         }
     }
 

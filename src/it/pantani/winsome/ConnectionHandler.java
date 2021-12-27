@@ -233,7 +233,7 @@ public class ConnectionHandler implements Runnable {
         WinSomeUser u = s.getUser(username);
 
         if(u != null) {
-            if(u.checkPassword(password)) {
+            if(s.checkUserPassword(u, password)) {
                 WinSomeSession wss = getSession(username);
                 if(wss != null) {
                     if(wss.getSessionSocket() == clientSocket) {
@@ -247,7 +247,7 @@ public class ConnectionHandler implements Runnable {
                 ServerMain.listaSessioni.put(username, wss);
                 clientSession = wss;
 
-                out.println("login ok");
+                out.println(Utils.SOCIAL_LOGIN_SUCCESS);
             } else {
                 out.println("password errata");
             }
@@ -267,7 +267,7 @@ public class ConnectionHandler implements Runnable {
                 if (wss.getSessionSocket() == clientSocket) { // deve corrispondere il socket della sessione
                     ServerMain.listaSessioni.remove(username);
                     clientSession = null;
-                    out.println("logout di '" + username + "' effettuato");
+                    out.println(Utils.SOCIAL_LOGOUT_SUCCESS);
                 } else {
                     out.println("non hai effettuato il login"); // se un altro client prova a fare logout
                 }
@@ -414,10 +414,8 @@ public class ConnectionHandler implements Runnable {
         try {
             int new_post_id = s.createPost(current_user, post_title, post_content);
             out.println("post pubblicato (#" + new_post_id + ")");
-        } catch(PostTitleTooLongException e) {
-            out.println("titolo del post troppo lungo");
-        } catch(PostContentTooLongException e) {
-            out.println("contenuto del post troppo lungo");
+        } catch(InvalidOperationException e) {
+            out.println("titolo o contenuto del post troppo lungo");
         } catch(UserNotFoundException e) {
             out.println("utente non trovato");
         }

@@ -35,16 +35,18 @@ public class ClientMain {
     public static String multicast_server_address = "224.0.0.1";
     public static int multicast_server_port = 6788;
 
-    public static ArrayList<String> listaFollower = null;
+    public static ArrayList<String> listaFollower = new ArrayList<>();
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
     public static void main(String[] args) {
-        if(args.length >= 2 && args.length < 5) {
+        if(args.length >= 2 && args.length < 7) {
             try {
                 server_address = args[0];
                 server_port = Integer.parseInt(args[1]);
                 if(args.length >= 3) server_rmi_port = Integer.parseInt(args[2]);
                 if(args.length >= 4) client_rmi_callback_port = Integer.parseInt(args[3]);
+                if(args.length >= 5) multicast_server_address = args[4];
+                if(args.length >= 6) multicast_server_port = Integer.parseInt(args[5]);
             } catch(NumberFormatException e) {
                 System.err.println("[!] Numero fornito non valido. Motivo: " + e.getLocalizedMessage());
             }
@@ -53,6 +55,8 @@ public class ClientMain {
         System.out.println("> Porta server: " + server_port);
         System.out.println("> Porta RMI server: " + server_rmi_port);
         System.out.println("> Porta RMI callback client: " + client_rmi_callback_port);
+        System.out.println("> Indirizzo multicast notifiche: " + multicast_server_address);
+        System.out.println("> Porta multicast notifiche: " + multicast_server_port);
 
         Socket socket;
         Scanner lettore = new Scanner(System.in);
@@ -65,7 +69,7 @@ public class ClientMain {
         boolean reqFailed = false;
 
         // Ascolto aggiornamenti wallet
-        WalletUpdateManager wum = null;
+        WalletUpdateManager wum;
         try {
             wum = new WalletUpdateManager(multicast_server_address, multicast_server_port);
         } catch(ConfigurationException e) {
@@ -81,7 +85,7 @@ public class ClientMain {
             try {
                 socket = new Socket(server_address, server_port);
             } catch(IOException e) {
-                System.err.print("[!] Impossibile connettersi al server. Riprovare il collegamento? (S/N): ");
+                System.err.print("[!] Impossibile connettersi al server. Riprovare a collegarsi? (S/N): ");
                 if(lettore.nextLine().equalsIgnoreCase("S")) {
                     continue;
                 } else {
@@ -135,7 +139,12 @@ public class ClientMain {
                             }
                             ArrayList<String> tags_list = new ArrayList<>(Arrays.asList(arguments).subList(2, arguments.length));
 
-                            System.out.println("> Risposta server: " + stub.register(arguments[0], arguments[1], tags_list));
+                            String server_response = stub.register(arguments[0], arguments[1], tags_list);
+                            if(server_response.equals(Utils.SOCIAL_REGISTRATION_SUCCESS)) {
+                                System.out.println("> Registrazione dell'utente '" + arguments[0] + "' completata.");
+                            } else {
+                                System.out.println("> Non è stato possibile registrare l'utente '" + arguments[0] + "'.");
+                            }
                             break;
                         }
                         case "login": {
@@ -145,7 +154,7 @@ public class ClientMain {
                             }
                             out.println(raw_request);
                             String response = in.readLine();
-                            if (response.equalsIgnoreCase("login ok")) {
+                            if (response.equalsIgnoreCase(Utils.SOCIAL_LOGIN_SUCCESS)) {
                                 username = arguments[0];
                                 // registrazione callback
                                 try {
@@ -165,18 +174,22 @@ public class ClientMain {
                                 }
 
                                 listaFollower = stub.initializeFollowerList(username, arguments[1]);
+                                System.out.println("> Login dell'utente '" + username + "' effettuato.");
+                            } else {
+                                System.out.println("[Server]> " + response);
                             }
-                            System.out.println("[Server]> " + response);
                             break;
                         }
                         case "logout": {
                             out.println(raw_request);
                             String a = in.readLine();
-                            System.out.println("[Server]> " + a);
-                            if (server != null && a.equalsIgnoreCase("logout di '" + username + "' effettuato")) {
+                            if (server != null && a.equals(Utils.SOCIAL_LOGOUT_SUCCESS)) {
+                                System.out.println("> Logout dell'utente '" + username + "' effettuato");
                                 server.unregisterForCallback(username);
                                 UnicastRemoteObject.unexportObject(callbackobj, false);
                                 username = null;
+                            } else {
+                                System.out.println("[Server]> " + a);
                             }
                             break;
                         }
@@ -186,7 +199,7 @@ public class ClientMain {
                             break;
                         }
                         case "listfollowers": {
-                            if (listaFollower == null) {
+                            if (listaFollower.size() == 0) {
                                 System.out.println("> Nessun utente ti segue.");
                                 break;
                             }
@@ -307,7 +320,7 @@ public class ClientMain {
                     }
                 }
             } catch (IOException e) {
-                System.err.print("[!] Connessione al server perduta. Riprovare il collegamento? (S/N): ");
+                System.err.print("[!] Connessione al server perduta. Riprovare a collegarsi? (S/N): ");
                 if(!lettore.nextLine().equalsIgnoreCase("S")) {
                     break;
                 } else {

@@ -22,6 +22,13 @@ import java.util.Locale;
  * Classe utilizzata sia da client che server perché contiene utili funzioni che permettono il funzionamento di WinSome.
  */
 public class Utils {
+    public static final String SOCIAL_REGISTRATION_SUCCESS = "registration ok";
+    public static final String SOCIAL_REGISTRATION_FAILED = "registration failed";
+
+    public static final String SOCIAL_LOGIN_SUCCESS = "login ok";
+
+    public static final String SOCIAL_LOGOUT_SUCCESS = "logout ok";
+
     // indirizzo utilizzato per il recupero di valori casuali
     public static final String web_address = "https://www.random.org/decimal-fractions/?num=1&dec=20&col=1&format=plain&rnd=new";
 

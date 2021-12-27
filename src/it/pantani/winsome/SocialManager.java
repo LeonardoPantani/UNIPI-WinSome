@@ -12,6 +12,7 @@ import it.pantani.winsome.entities.WinSomeUser;
 import it.pantani.winsome.entities.WinSomeWallet;
 import it.pantani.winsome.exceptions.*;
 import it.pantani.winsome.utils.ConfigManager;
+import it.pantani.winsome.utils.PasswordManager;
 import it.pantani.winsome.utils.PostComparator;
 import it.pantani.winsome.utils.Utils;
 
@@ -71,10 +72,10 @@ public class SocialManager {
         decimal_places = Integer.parseInt(config.getPreference("currency_decimal_places"));
     }
 
-    public int createPost(String username, String post_title, String post_content) throws PostTitleTooLongException, PostContentTooLongException, UserNotFoundException {
+    public int createPost(String username, String post_title, String post_content) throws UserNotFoundException, InvalidOperationException {
         if(!userList.containsKey(username)) throw new UserNotFoundException();
-        if(post_title.length() > Integer.parseInt(config.getPreference("post_max_title_length"))) throw new PostTitleTooLongException();
-        if(post_content.length() > Integer.parseInt(config.getPreference("post_max_content_length"))) throw new PostContentTooLongException();
+        if(post_title.length() > Integer.parseInt(config.getPreference("post_max_title_length"))) throw new InvalidOperationException();
+        if(post_content.length() > Integer.parseInt(config.getPreference("post_max_content_length"))) throw new InvalidOperationException();
 
         int idpost = last_post_id.getAndIncrement();
         postList.putIfAbsent(idpost, new WinSomePost(idpost, username, post_title, post_content));
@@ -127,10 +128,10 @@ public class SocialManager {
         ret += "Titolo: " + p.getPostTitle() + "\n";
         ret += "Contenuto: " + p.getPostContent() + "\n";
         ret += "Autore: " + p.getAuthor() + "\n";
-        ret += "Voti (" + p.getTotalVotes() + "): " + p.getUpvotes() + " ";
-        if(p.getUpvotes() == 1) ret += "positivo"; else ret += "positivi";
-        ret += ", " + p.getDownvotes() + " ";
-        if(p.getDownvotes() == 1) ret += "negativo"; else ret += "negativi";
+        ret += "Voti (" + p.getTotalVotes() + "): " + p.getNumVotesByValue(1) + " ";
+        if(p.getNumVotesByValue(1) == 1) ret += "positivo"; else ret += "positivi";
+        ret += ", " + p.getNumVotesByValue(-1) + " ";
+        if(p.getNumVotesByValue(-1) == 1) ret += "negativo"; else ret += "negativi";
         ret += "\n";
         ret += "Data: " + getFormattedDate(p.getDateSent()) + "\n";
         if(lista_commenti != null) {
@@ -364,5 +365,11 @@ public class SocialManager {
 
     public String getFormattedValue(double input) {
         return String.format("%." + decimal_places + "f", Utils.roundC(input, decimal_places));
+    }
+
+    public boolean checkUserPassword(WinSomeUser u, String passwordToVerify) {
+        if(u == null) return false;
+
+        return PasswordManager.checkPSW(passwordToVerify, u.getSavedPassword());
     }
 }
