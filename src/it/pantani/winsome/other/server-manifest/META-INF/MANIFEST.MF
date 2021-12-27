@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
 Main-Class: it.pantani.winsome.server.ServerMain
+Class-Path: src/it/pantani/winsome/libs/gson-2.8.9.jar src/it/pantani/winsome/libs/spring-security-crypto-5.4.7.jar
 
