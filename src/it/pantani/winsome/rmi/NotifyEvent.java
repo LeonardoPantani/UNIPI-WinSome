@@ -6,7 +6,7 @@
 
 package it.pantani.winsome.rmi;
 
-import it.pantani.winsome.ClientMain;
+import it.pantani.winsome.client.ClientMain;
 
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteObject;

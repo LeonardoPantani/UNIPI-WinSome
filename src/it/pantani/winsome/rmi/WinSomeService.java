@@ -6,11 +6,11 @@
 
 package it.pantani.winsome.rmi;
 
-import it.pantani.winsome.ServerMain;
-import it.pantani.winsome.SocialManager;
-import it.pantani.winsome.entities.WinSomeUser;
-import it.pantani.winsome.utils.PasswordManager;
-import it.pantani.winsome.utils.Utils;
+import it.pantani.winsome.server.ServerMain;
+import it.pantani.winsome.server.SocialManager;
+import it.pantani.winsome.server.entities.WinSomeUser;
+import it.pantani.winsome.server.utils.PasswordManager;
+import it.pantani.winsome.other.Utils;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
