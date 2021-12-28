@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
+// TODO aggiungere file di configurazione client + commentare
 public class ClientMain {
     public static String server_address = "localhost";
     public static int server_port = 6789;

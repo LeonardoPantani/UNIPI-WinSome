@@ -27,6 +27,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.*;
 
+// TODO commentare e ottimizzare
 public class ServerMain {
     public static ConfigManager config;
     public static SocialManager social;

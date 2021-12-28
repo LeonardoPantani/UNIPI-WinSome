@@ -169,6 +169,7 @@ public class RewardsManager implements Runnable {
                         // ora invio la stringa vera e propria contenente: numero di valuta winsome + nome valuta (singolare o plurale)
                         packet = new DatagramPacket(buffer_array, buffer_array.length, multicast_address, multicast_port);
                         socketServer.send(packet);
+                        System.out.println("[RW]> Inviata notifica su " + multicast_address + ":" + multicast_port + " riguardo il premio di " + social.getFormattedCurrency(total_gain));
                     }
                     last_rewards_check = System.currentTimeMillis(); // aggiorno ultimo controllo
                 }

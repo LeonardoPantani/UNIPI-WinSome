@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static it.pantani.winsome.other.Utils.getFormattedDate;
 
+// TODO commentare e ottimizzare
 public class ConnectionHandler implements Runnable {
     private final Socket clientSocket;
     private WinSomeSession clientSession;
@@ -436,7 +437,7 @@ public class ConnectionHandler implements Runnable {
         StringBuilder ret = new StringBuilder("BLOG DI " + current_user + ":\n");
         user_posts.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
         for(WinSomePost p : user_posts) {
-            ret.append(s.getPostFormatted(p.getPostID(), true));
+            ret.append(s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
         }
         Utils.send(out, ret.toString());
     }
@@ -512,9 +513,9 @@ public class ConnectionHandler implements Runnable {
         }
 
         StringBuilder output = new StringBuilder();
-        output.append("FEED DI ").append(current_user).append(":\n");
+        output.append("FEED DI ").append(current_user.toUpperCase()).append(":\n");
         for(WinSomePost p : feed) {
-            output.append(s.getPostFormatted(p.getPostID(), false));
+            output.append(s.getPostFormatted(p.getPostID(), false, false, true, false, false, false));
         }
         Utils.send(out, output.toString());
     }
@@ -531,7 +532,7 @@ public class ConnectionHandler implements Runnable {
             out.println("impossibile trovare post con id #" + post_id);
             return;
         }
-        Utils.send(out, s.getPostFormatted(p.getPostID(), true));
+        Utils.send(out, s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
     }
 
     private void addComment(int post_id, String text) {

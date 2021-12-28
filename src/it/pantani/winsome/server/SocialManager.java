@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static it.pantani.winsome.other.Utils.getFormattedDate;
 
+// TODO commentare e ottimizzare
 public class SocialManager {
     private final ConfigManager config;
 
@@ -116,25 +117,27 @@ public class SocialManager {
     }
 
     @SuppressWarnings("StringConcatenationInLoop")
-    public String getPostFormatted(int post_id, boolean showRewin) {
+    public String getPostFormatted(int post_id, boolean showRewin, boolean showContent, boolean showAuthor, boolean showVotes, boolean showCreationDate, boolean showComments) {
         WinSomePost p = postList.get(post_id);
         String ret;
         if(p == null) return null;
         ArrayList<WinSomeComment> lista_commenti = p.getCommentList();
         ConcurrentLinkedQueue<String> q = p.getRewinUsers();
 
-        ret = "[Post #" + p.getPostID() + "]\n";
+        ret = "[ Post #" + p.getPostID() + " ]\n";
         if(showRewin && q.size() != 0) { ret += "* post rewinnato da " + q.size() + " "; if(q.size() == 1) { ret += "utente"; } else { ret += "utenti"; } ret += " *\n"; }
         ret += "Titolo: " + p.getPostTitle() + "\n";
-        ret += "Contenuto: " + p.getPostContent() + "\n";
-        ret += "Autore: " + p.getAuthor() + "\n";
-        ret += "Voti (" + p.getTotalVotes() + "): " + p.getNumVotesByValue(1) + " ";
-        if(p.getNumVotesByValue(1) == 1) ret += "positivo"; else ret += "positivi";
-        ret += ", " + p.getNumVotesByValue(-1) + " ";
-        if(p.getNumVotesByValue(-1) == 1) ret += "negativo"; else ret += "negativi";
-        ret += "\n";
-        ret += "Data: " + getFormattedDate(p.getDateSent()) + "\n";
-        if(lista_commenti != null) {
+        if(showContent) ret += "Contenuto: " + p.getPostContent() + "\n";
+        if(showAuthor) ret += "Autore: " + p.getAuthor() + "\n";
+        if(showVotes) {
+            ret += "Voti (" + p.getTotalVotes() + "): " + p.getNumVotesByValue(1) + " ";
+            if(p.getNumVotesByValue(1) == 1) ret += "positivo"; else ret += "positivi";
+            ret += ", " + p.getNumVotesByValue(-1) + " ";
+            if(p.getNumVotesByValue(-1) == 1) ret += "negativo"; else ret += "negativi";
+            ret += "\n";
+        }
+        if(showCreationDate) ret += "Data: " + getFormattedDate(p.getDateSent()) + "\n";
+        if(showComments && lista_commenti != null) {
             ret += "Commenti (" + lista_commenti.size() + "):\n";
             for(WinSomeComment c : lista_commenti) {
                 ret += "- " + c.getAuthor() + ": " + c.getContent() + "\n";
@@ -190,7 +193,6 @@ public class SocialManager {
                 blog.add(p);
             }
         }
-        blog.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
 
         return blog;
     }
@@ -203,7 +205,6 @@ public class SocialManager {
             ArrayList<WinSomePost> p = getBlog(u);
             if(p != null) feed.addAll(p);
         }
-        feed.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel feed
 
         return feed;
     }
