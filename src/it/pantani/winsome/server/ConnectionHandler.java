@@ -9,7 +9,7 @@ package it.pantani.winsome.server;
 import it.pantani.winsome.server.entities.*;
 import it.pantani.winsome.server.exceptions.*;
 import it.pantani.winsome.rmi.WinSomeCallback;
-import it.pantani.winsome.server.utils.ConfigManager;
+import it.pantani.winsome.other.ConfigManager;
 import it.pantani.winsome.server.utils.PostComparator;
 import it.pantani.winsome.other.Utils;
 

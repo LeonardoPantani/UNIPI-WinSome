@@ -11,9 +11,8 @@ import it.pantani.winsome.server.entities.WinSomePost;
 import it.pantani.winsome.server.entities.WinSomeUser;
 import it.pantani.winsome.server.entities.WinSomeWallet;
 import it.pantani.winsome.server.exceptions.*;
-import it.pantani.winsome.server.utils.ConfigManager;
+import it.pantani.winsome.other.ConfigManager;
 import it.pantani.winsome.server.utils.PasswordManager;
-import it.pantani.winsome.server.utils.PostComparator;
 import it.pantani.winsome.other.Utils;
 
 import java.io.IOException;
@@ -369,5 +368,14 @@ public class SocialManager {
         if(u == null) return false;
 
         return PasswordManager.checkPSW(passwordToVerify, u.getSavedPassword());
+    }
+
+    /**
+     * Permette di salvare il dato l'id dell'ultimo post creato in memoria persistente. Si è preferito tenere
+     * questo metodo nella classe SocialManager invece che nel main per cercare di tenere più separati possibili
+     * i compiti delle singole classi.
+     */
+    public void savePersistentData() {
+        config.forceSavePreference("last_post_id", String.valueOf(last_post_id.intValue()));
     }
 }

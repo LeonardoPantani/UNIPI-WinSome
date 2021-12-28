@@ -11,13 +11,16 @@ import it.pantani.winsome.rmi.NotifyEvent;
 import it.pantani.winsome.rmi.NotifyEventInterface;
 import it.pantani.winsome.rmi.WinSomeCallbackInterface;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
+import it.pantani.winsome.other.ConfigManager;
 
 import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -27,31 +30,38 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-// TODO aggiungere file di configurazione client + commentare
+// TODO commentare e ottimizzare
 public class ClientMain {
-    public static String server_address = "localhost";
-    public static int server_port = 6789;
-    public static int server_rmi_port = 1099;
-    public static int client_rmi_callback_port = 1100;
-    public static String multicast_server_address = "224.0.0.1";
-    public static int multicast_server_port = 6788;
+    public static ConfigManager config;
+
+    public static String server_address;
+    public static int server_port;
+    public static int server_rmi_port;
+    public static int client_rmi_callback_port;
+    public static String multicast_server_address;
+    public static int multicast_server_port;
 
     public static ArrayList<String> listaFollower = new ArrayList<>();
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
     public static void main(String[] args) {
-        if(args.length >= 2 && args.length < 7) {
-            try {
-                server_address = args[0];
-                server_port = Integer.parseInt(args[1]);
-                if(args.length >= 3) server_rmi_port = Integer.parseInt(args[2]);
-                if(args.length >= 4) client_rmi_callback_port = Integer.parseInt(args[3]);
-                if(args.length >= 5) multicast_server_address = args[4];
-                if(args.length >= 6) multicast_server_port = Integer.parseInt(args[5]);
-            } catch(NumberFormatException e) {
-                System.err.println("[!] Numero fornito non valido. Motivo: " + e.getLocalizedMessage());
-            }
+        System.out.println("> Lettura dati dal file di configurazione...");
+        try {
+            config = new ConfigManager(false);
+        } catch(IOException e) {
+            System.err.println("[!] Lettura fallita. Motivo: " + e.getLocalizedMessage());
+            return;
         }
+
+        // validazione variabili
+        try {
+            validateAndSavePreferences();
+        } catch(ConfigurationException e) {
+            System.err.println("[!] Inizializzazione fallita, " + e.getLocalizedMessage());
+            return;
+        }
+
+        // validazione ok, le stampo
         System.out.println("> Indirizzo server: " + server_address);
         System.out.println("> Porta server: " + server_port);
         System.out.println("> Porta RMI server: " + server_rmi_port);
@@ -351,5 +361,62 @@ public class ClientMain {
         wum.stopExecution();
 
         System.out.println("> Terminazione client.");
+    }
+
+    private static void validateAndSavePreferences() throws ConfigurationException {
+        try {
+            String temp = config.getPreference("server_address");
+            InetAddress ignored = InetAddress.getByName(temp);
+            server_address = temp;
+        } catch(UnknownHostException e) {
+            throw new ConfigurationException("valore 'server_address' non valido (" + e.getLocalizedMessage() + ")");
+        }
+
+        try {
+            server_port = Integer.parseInt(config.getPreference("server_port"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'server_port' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(server_port <= 0 || server_port >= 65535) {
+            throw new ConfigurationException("valore 'server_port' non valido (" + server_port + " non e' una porta valida)");
+        }
+
+        try {
+            server_rmi_port = Integer.parseInt(config.getPreference("server_rmi_port"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'server_rmi_port' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(server_rmi_port <= 0 || server_rmi_port >= 65535) {
+            throw new ConfigurationException("valore 'server_rmi_port' non valido (" + server_rmi_port + " non e' una porta valida)");
+        }
+
+        try {
+            client_rmi_callback_port = Integer.parseInt(config.getPreference("client_rmi_callback_port"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'client_rmi_callback_port' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(client_rmi_callback_port <= 0 || client_rmi_callback_port >= 65535) {
+            throw new ConfigurationException("valore 'client_rmi_callback_port' non valido (" + client_rmi_callback_port + " non e' una porta valida)");
+        }
+
+        try {
+            String temp = config.getPreference("multicast_server_address");
+            InetAddress temp2 = InetAddress.getByName(temp);
+            if(!temp2.isMulticastAddress()) {
+                throw new ConfigurationException("valore 'multicast_server_address' non valido (" + multicast_server_address + " non e' un indirizzo multicast)");
+            }
+            multicast_server_address = temp;
+        } catch(UnknownHostException e) {
+            throw new ConfigurationException("valore 'multicast_server_address' non valido (" + e.getLocalizedMessage() + ")");
+        }
+
+        try {
+            multicast_server_port = Integer.parseInt(config.getPreference("multicast_server_port"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'multicast_server_port' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(multicast_server_port <= 0 || multicast_server_port >= 65535) {
+            throw new ConfigurationException("valore 'multicast_server_port' non valido (" + multicast_server_port + " non e' una porta valida)");
+        }
     }
 }

@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class JsonManager {
-    private static final String FOLDER_NAME = "data"; // nome cartella
+    private static final String WINSOME_FOLDER_NAME = "data"; // nome cartella
 
     // percorsi ai file json
     private static final String USER_DATA_PATH = "user_data.json";
@@ -43,11 +43,11 @@ public class JsonManager {
      */
     public JsonManager() {
         gson = new Gson();
-        if(!createFile(FOLDER_NAME+"/"+ USER_DATA_PATH)) System.err.println("[!] Errore creazione file dati utente");
-        if(!createFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (wallets)");
-        if(!createFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (followers)");
-        if(!createFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (following)");
-        if(!createFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (posts)");
+        if(!createFile(WINSOME_FOLDER_NAME+"/"+ USER_DATA_PATH)) System.err.println("[!] Errore creazione file dati utente");
+        if(!createFile(WINSOME_FOLDER_NAME+"/"+ WALLETS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (wallets)");
+        if(!createFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (followers)");
+        if(!createFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (following)");
+        if(!createFile(WINSOME_FOLDER_NAME+"/"+ POSTS_DATA_PATH)) System.err.println("[!] Errore creazione file relazione (posts)");
     }
 
     /**
@@ -66,7 +66,7 @@ public class JsonManager {
      * @param s l'oggetto social
      */
     public void loadUserData(SocialManager s) {
-        String input = getFromFile(FOLDER_NAME+"/"+ USER_DATA_PATH);
+        String input = getFromFile(WINSOME_FOLDER_NAME+"/"+ USER_DATA_PATH);
         if(input == null) return;
 
         // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
@@ -83,7 +83,7 @@ public class JsonManager {
      * @param s l'oggetto social
      */
     public void loadPostData(SocialManager s) {
-        String input = getFromFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH);
+        String input = getFromFile(WINSOME_FOLDER_NAME+"/"+ POSTS_DATA_PATH);
         if(input == null) return;
 
         // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
@@ -100,7 +100,7 @@ public class JsonManager {
      * @param s l'oggetto social
      */
     public void loadWalletsData(SocialManager s) {
-        String input = getFromFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH);
+        String input = getFromFile(WINSOME_FOLDER_NAME+"/"+ WALLETS_DATA_PATH);
         if(input == null) return;
 
         // se non ci fosse questa riga, la JVM non sarebbe in grado di ricavare la struttura esatta degli oggetti serializzati
@@ -118,7 +118,7 @@ public class JsonManager {
      */
     public void loadRelationsData(SocialManager s) {
         // FOLLOWERS
-        String input = getFromFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH);
+        String input = getFromFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH);
         if(input != null) {
             if(input.equals("")) {
                 System.out.println("> File dati relazioni (followers) vuoto.");
@@ -130,7 +130,7 @@ public class JsonManager {
         }
 
         // FOLLOWING
-        input = getFromFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH);
+        input = getFromFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH);
         if(input != null) {
             if(input.equals("")) {
                 System.out.println("> File dati relazioni (following) vuoto.");
@@ -148,13 +148,13 @@ public class JsonManager {
      * @throws IOException in caso di errori con il salvataggio dei dati
      */
     public void saveAll(SocialManager s) throws IOException {
-        saveInFile(FOLDER_NAME+"/"+ USER_DATA_PATH, s.getUserList());
-        saveInFile(FOLDER_NAME+"/"+ WALLETS_DATA_PATH, s.getWalletList());
+        saveInFile(WINSOME_FOLDER_NAME+"/"+ USER_DATA_PATH, s.getUserList());
+        saveInFile(WINSOME_FOLDER_NAME+"/"+ WALLETS_DATA_PATH, s.getWalletList());
 
-        saveInFile(FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH, s.getFollowersList());
-        saveInFile(FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH, s.getFollowingList());
+        saveInFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWERS_DATA_PATH, s.getFollowersList());
+        saveInFile(WINSOME_FOLDER_NAME+"/"+ FOLLOWING_DATA_PATH, s.getFollowingList());
 
-        saveInFile(FOLDER_NAME+"/"+ POSTS_DATA_PATH, s.getPostList());
+        saveInFile(WINSOME_FOLDER_NAME+"/"+ POSTS_DATA_PATH, s.getPostList());
     }
 
     /**
@@ -236,7 +236,7 @@ public class JsonManager {
      * @return vero se il file viene creato, falso altrimenti
      */
     private boolean createFile(String path) {
-        boolean ignored = new File(FOLDER_NAME).mkdirs(); // genero la cartella, se non esiste già
+        boolean ignored = new File(WINSOME_FOLDER_NAME).mkdirs(); // genero la cartella, se non esiste già
 
         try {
             File f = new File(path);

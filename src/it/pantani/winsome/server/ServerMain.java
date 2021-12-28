@@ -11,7 +11,7 @@ import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.rmi.WinSomeCallbackInterface;
 import it.pantani.winsome.rmi.WinSomeService;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
-import it.pantani.winsome.server.utils.ConfigManager;
+import it.pantani.winsome.other.ConfigManager;
 import it.pantani.winsome.server.utils.JsonManager;
 
 import javax.naming.ConfigurationException;
@@ -41,7 +41,7 @@ public class ServerMain {
     public static void main(String[] args) {
         System.out.println("> Lettura dati dal file di configurazione...");
         try {
-            config = new ConfigManager();
+            config = new ConfigManager(true);
         } catch(IOException e) {
             System.err.println("[!] Lettura fallita. Motivo: " + e.getLocalizedMessage());
             return;
@@ -191,7 +191,8 @@ public class ServerMain {
         // salvataggio dati persistente
         try {
             jsonmng.saveAll(social);
-            config.saveConfigData(social, rewards);
+            social.savePersistentData();
+            rewards.savePersistentData();
         } catch (IOException e) {
             e.printStackTrace();
         }

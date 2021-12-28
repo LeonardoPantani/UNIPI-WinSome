@@ -8,7 +8,7 @@ package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.WinSomePost;
 import it.pantani.winsome.server.entities.WinSomeVote;
-import it.pantani.winsome.server.utils.ConfigManager;
+import it.pantani.winsome.other.ConfigManager;
 
 import javax.naming.ConfigurationException;
 import java.io.IOException;
@@ -256,5 +256,14 @@ public class RewardsManager implements Runnable {
      */
     public void stopExecution() {
         stop = true;
+    }
+
+    /**
+     * Permette di salvare il dato sull'ultimo controllo dei premi in memoria persistente. Si è preferito tenere
+     * questo metodo nella classe RewardsManager invece che nel main o nel SocialManager per cercare di tenere più
+     * separati possibili i compiti delle singole classi.
+     */
+    public void savePersistentData() {
+        config.forceSavePreference("last_rewards_check", String.valueOf(last_rewards_check));
     }
 }
