@@ -10,7 +10,6 @@ import it.pantani.winsome.server.entities.*;
 import it.pantani.winsome.server.exceptions.*;
 import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.other.ConfigManager;
-import it.pantani.winsome.server.utils.PostComparator;
 import it.pantani.winsome.other.Utils;
 
 import java.io.BufferedReader;
@@ -26,7 +25,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static it.pantani.winsome.other.Utils.getFormattedDate;
 
-// TODO commentare e ottimizzare
+/**
+ * Una delle classi principali che si occupa di gestire la connessione con un client. Quello che fa in breve è ricevere
+ * un clientSocket da gestire, ascolta le richieste in arrivo dal client connesso a quel socket, le elabora e genera una
+ * risposta appropriata.
+ *
+ * clientSocket -> il socket da gestire ricevuto dal main
+ * clientSession -> contiene informazioni sulla sessione dell'utente attualmente connesso (inizialmente null)
+ * chCode -> codice del ConnectionHandler, usato nelle stampe di alcuni messaggi
+ */
 public class ConnectionHandler implements Runnable {
     private final Socket clientSocket;
     private WinSomeSession clientSession;
@@ -35,13 +42,20 @@ public class ConnectionHandler implements Runnable {
     private PrintWriter out = null;
     private BufferedReader in = null;
 
+    /**
+     * Costruttore della classe ConnectionHandler. Si occupa di inizializzare i valori clientSocket, clientSession e chCode.
+     * @param clientSocket socket del client a cui è stata accetta la connessione nel main
+     * @param chCode codice assegnato nel main a questo ConnectionHandler
+     */
     public ConnectionHandler(Socket clientSocket, int chCode) {
         this.clientSocket = clientSocket;
         this.clientSession = null;
         this.chCode = chCode;
     }
 
-    @Override
+    /**
+     * Metodo eseguito dal threadpool.
+     */
     public void run() {
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -50,8 +64,9 @@ public class ConnectionHandler implements Runnable {
             e.printStackTrace();
         }
 
+        // se gli stream di input e output sono nulli dò errore subito e termino
         if(out == null || in == null) {
-            System.err.println("[!] Errore durante instaurazione connessione.");
+            System.err.println("[CH #" + chCode + "]> Errore durante instaurazione connessione.");
             return;
         } else {
             System.out.println("[CH #" + chCode + "]> Sto gestendo il socket: " + clientSocket.getInetAddress() + ":" + clientSocket.getPort());
@@ -60,10 +75,12 @@ public class ConnectionHandler implements Runnable {
         String raw_request;
         while(true) {
             try {
+                // leggo la richiesta del client
                 raw_request = in.readLine();
-                if(raw_request != null) {
+                if(raw_request != null) { // se è valida allora mi preparo a gestirla
                     System.out.println("[" + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + "]> " + raw_request);
 
+                    // divido la richiesta in operazione e argomenti
                     String[] temp = raw_request.split(" ");
                     String request = temp[0];
                     String[] arguments = new String[temp.length-1];
@@ -72,7 +89,7 @@ public class ConnectionHandler implements Runnable {
                     switch (request) {
                         case "login": {
                             if (arguments.length != 2) {
-                                out.println("Comando errato, usa: login <username> <password>");
+                                out.println("comando errato, usa: login <username> <password>");
                                 break;
                             }
                             login(arguments[0], arguments[1]);
@@ -96,7 +113,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "follow": {
                             if (arguments.length != 1) {
-                                out.println("Comando errato, usa: follow <username>");
+                                out.println("comando errato, usa: follow <username>");
                                 break;
                             }
                             follow(arguments[0]);
@@ -104,13 +121,18 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "unfollow": {
                             if (arguments.length != 1) {
-                                out.println("Comando errato, usa: unfollow <username>");
+                                out.println("comando errato, usa: unfollow <username>");
                                 break;
                             }
                             unfollow(arguments[0]);
                             break;
                         }
                         case "post": {
+                            if(raw_request.length() < 5) {
+                                out.println("Comando errato, usa: post <titolo>|<contenuto>");
+                                break;
+                            }
+                            // scelta progettuale: il post deve avere sia titolo che contenuto obbligatoriamente
                             String req_body = raw_request.substring(5);
                             String[] text = req_body.split("\\|");
                             if(text.length != 2) {
@@ -154,7 +176,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "showpost": {
                             if(arguments.length != 1) {
-                                System.err.println("Comando errato, usa: showpost <id post>");
+                                out.println("Comando errato, usa: showpost <id post>");
                                 break;
                             }
                             try {
@@ -166,7 +188,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "comment": {
                             if(arguments.length < 2) {
-                                System.err.println("Comando errato, usa: comment <id post> <testo>");
+                                out.println("Comando errato, usa: comment <id post> <testo>");
                                 break;
                             }
                             // ottenimento commento
@@ -185,7 +207,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "delete": {
                             if(arguments.length != 1) {
-                                System.err.println("Comando errato, usa: delete <id post>");
+                                out.println("Comando errato, usa: delete <id post>");
                                 break;
                             }
                             try {
@@ -215,15 +237,26 @@ public class ConnectionHandler implements Runnable {
                 break;
             }
         }
-        ServerMain.listaSocket.remove(clientSocket);
-        if(clientSession != null) ServerMain.listaSessioni.remove(clientSession.getUsername());
+
+        // se esco dal while vuol dire che la connessione è terminata (con una IOException)
+        ServerMain.socketsList.remove(clientSocket); // rimuovo il socket del client dalla lista
+        if(clientSession != null) ServerMain.sessionsList.remove(clientSession.getUsername()); // se l'utente era loggato, ne rimuovo la sessione
         System.out.println("[CH #" + chCode + "]> Collegamento col client " + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + " terminato.");
     }
 
+    /**
+     * Eseguito se il server non conosce come gestire la richiesta del client.
+     */
     private void invalidcmd() {
         out.println("comando non riconosciuto");
     }
 
+    /**
+     * Se l'username esiste, la password corrisponde e non esiste già una sessione attiva allora genero una nuova
+     * sessione da aggiungere alla lista delle sessioni attive e invio il messaggio di conferma di login al client.
+     * @param username username dell'utente da loggare
+     * @param password password in chiaro dell'utente da loggare
+     */
     private void login(String username, String password) {
         if(clientSession != null) {
             out.println("sei gia' collegato con l'account '" + clientSession.getUsername() + "'");
@@ -235,7 +268,7 @@ public class ConnectionHandler implements Runnable {
 
         if(u != null) {
             if(s.checkUserPassword(u, password)) {
-                WinSomeSession wss = getSession(username);
+                WinSomeSession wss = ServerMain.sessionsList.get(username);
                 if(wss != null) {
                     if(wss.getSessionSocket() == clientSocket) {
                         out.println("hai gia' fatto il login in data " + getFormattedDate(wss.getTimestamp()));
@@ -245,7 +278,7 @@ public class ConnectionHandler implements Runnable {
                     return;
                 }
                 wss = new WinSomeSession(clientSocket, username);
-                ServerMain.listaSessioni.put(username, wss);
+                ServerMain.sessionsList.put(username, wss);
                 clientSession = wss;
 
                 out.println(Utils.SOCIAL_LOGIN_SUCCESS);
@@ -257,16 +290,21 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Se l'utente esiste, la sessione è attiva e il socket del client che manda il logout è uguale a quello della
+     * sessione che vuole terminare allora rimuovo la sessione del client e invio il messaggio di conferma al client.
+     * @param username l'username di cui fare il logout
+     */
     private void logout(String username) {
         SocialManager s = ServerMain.social;
         username = username.toLowerCase();
         WinSomeUser u = s.getUser(username);
 
         if(u != null) {
-            if(getSession(username) != null) {
-                WinSomeSession wss = ServerMain.listaSessioni.get(username);
+            if(ServerMain.sessionsList.get(username) != null) {
+                WinSomeSession wss = ServerMain.sessionsList.get(username);
                 if (wss.getSessionSocket() == clientSocket) { // deve corrispondere il socket della sessione
-                    ServerMain.listaSessioni.remove(username);
+                    ServerMain.sessionsList.remove(username);
                     clientSession = null;
                     out.println(Utils.SOCIAL_LOGOUT_SUCCESS);
                 } else {
@@ -280,8 +318,12 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Mostra all'utente una lista di utenti che hanno almeno un tag in comune con lui. Se l'utente, in fase di
+     * registrazione, non ha fornito nessun tag allora invio subito un messaggio di errore. Altrimenti stampo la lista.
+     */
     private void listusers() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -316,8 +358,12 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, output.toString());
     }
 
+    /**
+     * Mostra all'utente la lista di utenti che segue. Se questo non ne segue nessuno stampa subito un errore,
+     * altrimenti stampa la lista.
+     */
     private void listfollowing() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -337,8 +383,13 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, output.toString());
     }
 
+    /**
+     * Fa seguire all'utente attualmente loggato l'utente username. Se l'operazione ha successo, notifico username
+     * che ha ora un nuovo follower
+     * @param username l'utente che avrà un nuovo follower
+     */
     private void follow(String username) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -346,32 +397,30 @@ public class ConnectionHandler implements Runnable {
         username = username.toLowerCase();
         String current_user = clientSession.getUsername();
 
-        if(current_user.equalsIgnoreCase(username)) {
+        try {
+            s.followUser(current_user, username);
+            out.println("ora segui '" + username + "'");
+            try {
+                WinSomeCallback.notifyFollowerUpdate(username, "+" + current_user);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } catch(UserNotFoundException e) {
+            out.println("quell'utente non esiste");
+        } catch(SameUserException e) {
             out.println("non puoi seguire te stesso");
-            return;
-        }
-        if(!s.findUser(username)) {
-            out.println("quell'utente non esiste");
-            return;
-        }
-        ArrayList<String> user_followers = s.getFollowers(username);
-        if(user_followers.contains(current_user)) {
+        } catch(InvalidOperationException e) {
             out.println("segui gia' quell'utente");
-            return;
-        }
-
-        s.addFollowing(current_user, username);
-        s.addFollower(username, current_user);
-        out.println("ora segui '" + username + "'");
-        try {
-            WinSomeCallback.notifyFollowerUpdate(username, "+" + current_user);
-        } catch (RemoteException e) {
-            e.printStackTrace();
         }
     }
 
+    /**
+     * Fa smettere di seguire username all'utente attualmente connesso. Se l'operazione ha successo, notifico username
+     * che ha perso un follower.
+     * @param username l'utente che perderà un follower
+     */
     private void unfollow(String username) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -379,32 +428,30 @@ public class ConnectionHandler implements Runnable {
         username = username.toLowerCase();
         String current_user = clientSession.getUsername();
 
-        if(current_user.equalsIgnoreCase(username)) {
-            out.println("non puoi smettere di seguire te stesso");
-            return;
-        }
-        if(!s.findUser(username)) {
-            out.println("quell'utente non esiste");
-            return;
-        }
-        ArrayList<String> user_followers = s.getFollowers(username);
-        if(!user_followers.contains(current_user)) {
-            out.println("non segui quell'utente");
-            return;
-        }
-
-        s.removeFollowing(current_user, username);
-        s.removeFollower(username, current_user);
-        out.println("non segui piu' '" + username + "'");
         try {
-            WinSomeCallback.notifyFollowerUpdate(username, "-" + current_user);
-        } catch (RemoteException e) {
-            e.printStackTrace();
+            s.unfollowUser(current_user, username);
+            out.println("non segui piu' '" + username + "'");
+            try {
+                WinSomeCallback.notifyFollowerUpdate(username, "-" + current_user);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } catch(UserNotFoundException e) {
+            out.println("quell'utente non esiste");
+        } catch(SameUserException e) {
+            out.println("non puoi smettere di seguire te stesso");
+        } catch(InvalidOperationException e) {
+            out.println("non segui quell'utente");
         }
     }
 
+    /**
+     * Fa inviare all'utente attualmente connesso un post con un titolo e un corpo.
+     * @param post_title il titolo del nuovo post
+     * @param post_content il corpo del nuovo post
+     */
     private void post(String post_title, String post_content) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -421,8 +468,12 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Mostra all'utente la lista dei propri post e di quelli rewinnati da lui. Se il blog è vuoto è stampato subito
+     * un errore.
+     */
     private void blog() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -435,15 +486,19 @@ public class ConnectionHandler implements Runnable {
             return;
         }
         StringBuilder ret = new StringBuilder("BLOG DI " + current_user + ":\n");
-        user_posts.sort(new PostComparator().reversed()); // ordino per data decrescente i post nel blog
         for(WinSomePost p : user_posts) {
             ret.append(s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
         }
         Utils.send(out, ret.toString());
     }
 
+    /**
+     * Fa rewinnare all'utente attualmente connesso il post post_id. Questa operazione ha successo solo se: è nel suo feed,
+     * non lo ha già rewinnato e non è dello stesso utente.
+     * @param post_id l'id del post da rewinnare
+     */
     private void rewinPost(int post_id) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -451,7 +506,7 @@ public class ConnectionHandler implements Runnable {
         String current_user = clientSession.getUsername();
 
         try {
-            s.rewinPost(post_id, current_user);
+            s.rewinPost(current_user, post_id);
             out.println("rewin del post #" + post_id + " effettuato!");
         } catch(InvalidOperationException e) {
             out.println("hai gia' fatto il rewin di questo post");
@@ -459,7 +514,7 @@ public class ConnectionHandler implements Runnable {
             out.println("questo post non e' nel tuo feed");
         } catch(PostNotFoundException e) {
             out.println("impossibile trovare post con id #" + post_id);
-        } catch(SameAuthorException e) {
+        } catch(SameUserException e) {
             out.println("non puoi fare il rewin su un tuo post");
         } catch(UserNotFoundException e) {
             e.printStackTrace();
@@ -467,8 +522,15 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Fa valutare all'utente attualmente connesso il post post_id con voto vote. Questa operazione ha successo solo se:
+     * il voto è +1/-1 (da specifica), non è già stato espresso, il post è nel feed dell'utente e non è dello stesso utente
+     * che lo pubblica.
+     * @param post_id l'id del post da votare
+     * @param vote il valore del voto
+     */
     private void rate(int post_id, int vote) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -482,24 +544,28 @@ public class ConnectionHandler implements Runnable {
             } else {
                 out.println("hai messo -1 al post #" + post_id);
             }
-        } catch(UserNotFoundException e) {
-            e.printStackTrace();
-            out.println("errore interno");
         } catch(InvalidVoteException e) {
             out.println("voto non valido");
         } catch(PostNotFoundException e) {
             out.println("impossibile trovare post con id #" + post_id);
         } catch(InvalidOperationException e) {
             out.println("hai gia' votato questo post");
-        } catch(SameAuthorException e) {
+        } catch(SameUserException e) {
             out.println("non puoi votare un tuo stesso post");
         } catch(NotInFeedException e) {
             out.println("questo post non e' nel tuo feed");
+        } catch(UserNotFoundException e) {
+            e.printStackTrace();
+            out.println("errore interno");
         }
     }
 
+    /**
+     * Mostra all'utente il proprio feed, composto dai post contenuti nei blog degli utenti che segue. Notare come nel
+     * feed possano esserci anche propri post, se chi li ha nel proprio feed li ha rewinnati.
+     */
     private void showfeed() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -520,8 +586,12 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, output.toString());
     }
 
+    /**
+     * Mostra all'utente un post dato un id. Dà errore se il post non esiste.
+     * @param post_id l'id del post da mostrare
+     */
     private void showpost(int post_id) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -535,8 +605,14 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
     }
 
+    /**
+     * Fa aggiungere un commento al post post_id con contenuto text all'utente attualmente connesso. L'operazione ha successo
+     * solo se il post è nel proprio feed e non è il proprio.
+     * @param post_id l'id del post da commentare
+     * @param text il testo del commento
+     */
     private void addComment(int post_id, String text) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -548,15 +624,20 @@ public class ConnectionHandler implements Runnable {
             out.println("commento pubblicato");
         } catch(PostNotFoundException e) {
             out.println("impossibile trovare post con id #" + post_id);
-        } catch(SameAuthorException e) {
+        } catch(SameUserException e) {
             out.println("non puoi commentare sotto un tuo stesso post");
         } catch(NotInFeedException e) {
             out.println("questo post non e' nel tuo feed");
         }
     }
 
+    /**
+     * Fa cancellare il post post_id all'utente attualmente connesso. L'operazione ha successo solo se l'utente
+     * che richiede la cancellazione è lo stesso che ha mandato quel post.
+     * @param post_id l'id del post da cancellare
+     */
     private void deletePost(int post_id) {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -573,8 +654,13 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Mostra all'utente il proprio wallet di WinSome, completo di bilancio e transazioni. Tutti i valori delle transazioni
+     * hanno un numero di cifre decimali pari a quello specificato nel file di configurazione. Pertanto se la transazione
+     * è molto piccola, è possibile che, scegliendo poche cifre decimali, la transazione sia di tipo +0,00 wincoins.
+     */
     private void getWallet() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -605,8 +691,12 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, output.toString());
     }
 
+    /**
+     * Mostra all'utente il bilancio del proprio portafoglio WinSome, con il tasso di conversione attuale e il relativo
+     * valore in Bitcoin. Il tasso di conversione è ottenuto casualmente dal servizio random.org
+     */
     private void getWalletInBitcoin() {
-        if(!isLogged()) {
+        if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
@@ -633,21 +723,20 @@ public class ConnectionHandler implements Runnable {
         Utils.send(out, output);
     }
 
-    public static WinSomeSession getSession(String username) {
-        return ServerMain.listaSessioni.get(username);
-    }
-
+    // metodi per rendere più chiaro il codice
+    /**
+     * L'utente è collegato solo se clientSession non è null
+     * @return true se l'utente è collegato, false altrimenti
+     */
     public boolean isLogged() {
         return clientSession != null;
     }
 
-    public static WinSomeSession getSessionBySocket(Socket socket) {
-        for (WinSomeSession wss : ServerMain.listaSessioni.values()) {
-            if(wss.getSessionSocket() == socket) {
-                return wss;
-            }
-        }
-
-        return null;
+    /**
+     * L'utente è collegato solo se clientSession non è null
+     * @return true se l'utente NON è collegato, false altrimenti
+     */
+    public boolean isNotLogged() {
+        return clientSession == null;
     }
 }

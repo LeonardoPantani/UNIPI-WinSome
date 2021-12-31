@@ -6,12 +6,12 @@
 
 package it.pantani.winsome.client;
 
+import it.pantani.winsome.other.ConfigManager;
 import it.pantani.winsome.other.Utils;
 import it.pantani.winsome.rmi.NotifyEvent;
 import it.pantani.winsome.rmi.NotifyEventInterface;
 import it.pantani.winsome.rmi.WinSomeCallbackInterface;
 import it.pantani.winsome.rmi.WinSomeServiceInterface;
-import it.pantani.winsome.other.ConfigManager;
 
 import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
@@ -30,21 +30,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-// TODO commentare e ottimizzare
+/**
+ * Classe del Client del social WinSome. Gestisce tutte le operazioni che può svolgere il thin client, che come dice
+ * il nome, si occupa di inviare la richiesta e ricevere una risposta. Quasi tutte le operazioni non fanno altro che
+ * inviare la query "grezza" e aspettare la risposta del server, non sono svolte verifiche sugli argomenti lato client.
+ * Le uniche query un po' più "complesse" sono la register, login e logout, che hanno dei controlli supplementari sulla
+ * risposta del server. Per esempio, l'esito del login viene controllato dal client per verificare che quest'ultimo sia
+ * finito con successo per poter registrare il client al callback. Register e logout fanno controlli simili.
+ */
 public class ClientMain {
     public static ConfigManager config;
 
     public static String server_address;
     public static int server_port;
     public static int server_rmi_port;
+    public static String server_rmi_registry_name;
     public static int client_rmi_callback_port;
+    public static String server_rmi_callback_registry_name;
     public static String multicast_server_address;
     public static int multicast_server_port;
 
     public static ArrayList<String> listaFollower = new ArrayList<>();
 
-    @SuppressWarnings("DuplicateBranchesInSwitch")
     public static void main(String[] args) {
+        // leggo le preferenze dal file di configurazione
         System.out.println("> Lettura dati dal file di configurazione...");
         try {
             config = new ConfigManager(false);
@@ -61,25 +70,29 @@ public class ClientMain {
             return;
         }
 
-        // validazione ok, le stampo
+        // validazione ok, stampo le variabili
         System.out.println("> Indirizzo server: " + server_address);
         System.out.println("> Porta server: " + server_port);
         System.out.println("> Porta RMI server: " + server_rmi_port);
+        System.out.println("> Nome registry RMI server: " + server_rmi_registry_name);
         System.out.println("> Porta RMI callback client: " + client_rmi_callback_port);
+        System.out.println("> Nome registry RMI callback client: " + server_rmi_callback_registry_name);
         System.out.println("> Indirizzo multicast notifiche: " + multicast_server_address);
         System.out.println("> Porta multicast notifiche: " + multicast_server_port);
 
+        // preparo il collegamento col server
         Socket socket;
-        Scanner lettore = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in);
 
         WinSomeCallbackInterface server = null;
         NotifyEventInterface callbackstub;
         NotifyEventInterface callbackobj = null;
         String username = null;
         String raw_request = "";
+        String request = "";
         boolean reqFailed = false;
 
-        // Ascolto aggiornamenti wallet
+        // ascolto aggiornamenti wallet
         WalletUpdateManager wum;
         try {
             wum = new WalletUpdateManager(multicast_server_address, multicast_server_port);
@@ -90,14 +103,15 @@ public class ClientMain {
         Thread walletCheckerThread = new Thread(wum);
         walletCheckerThread.start();
 
-        // Mi collego al server
+        // nel caso la connessione col server cadesse, apparirà un prompt dove è chiesto se provare a ricollegarsi
         loopesterno:
         while(true) {
+            // mi collego al server
             try {
                 socket = new Socket(server_address, server_port);
             } catch(IOException e) {
                 System.err.print("[!] Impossibile connettersi al server. Riprovare a collegarsi? (S/N): ");
-                if(lettore.nextLine().equalsIgnoreCase("S")) {
+                if(reader.nextLine().equalsIgnoreCase("S")) {
                     continue;
                 } else {
                     break;
@@ -111,37 +125,42 @@ public class ClientMain {
             WinSomeServiceInterface stub;
             try {
                 registry = LocateRegistry.getRegistry(server_address, server_rmi_port);
-                stub = (WinSomeServiceInterface) registry.lookup("winsome-server");
+                stub = (WinSomeServiceInterface) registry.lookup(server_rmi_registry_name);
             } catch (RemoteException | NotBoundException e) {
                 System.err.println("[!] Errore RMI. Motivo: " + e.getLocalizedMessage());
                 return;
             }
 
+            // preparo i reader e writer dopo il primo collegamento al server
             try {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+                // ciclo per ogni richiesta fatta dall'utente
                 while(true) {
                     System.out.print("> ");
+                    // questo parametro è impostato a vero quando la connessione col server cade e si risponde "S" al prompt per ricollegarsi
+                    // in questo modo l'ultima richiesta è ricopiata per evitare che debba essere richiesta (solo per register e login)
                     if(reqFailed) {
                         System.out.print(raw_request);
-                        lettore.nextLine();
+                        reader.nextLine();
                         reqFailed = false;
                     } else {
-                        raw_request = lettore.nextLine();
+                        raw_request = reader.nextLine();
                         if(raw_request.equals("")) continue;
                     }
                     String[] temp = raw_request.split(" ");
-                    String request = temp[0];
+                    request = temp[0];
                     String[] arguments = new String[temp.length-1];
                     System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
+                    // una volta effettuata la divisione tra tipo operazione e argomenti, gestisco propriamente la richiesta
                     switch (request) {
                         case "stopclient": {
                             socket.close();
                             out.close();
                             in.close();
-                            break loopesterno;
+                            break loopesterno; // per terminare tutta l'esecuzione
                         }
                         case "register": {
                             if (arguments.length < 2 || arguments.length > 7) {
@@ -164,13 +183,13 @@ public class ClientMain {
                                 break;
                             }
                             out.println(raw_request);
-                            String response = in.readLine();
-                            if (response.equalsIgnoreCase(Utils.SOCIAL_LOGIN_SUCCESS)) {
+                            String response = Utils.receive(in);
+                            if (response.equalsIgnoreCase(Utils.SOCIAL_LOGIN_SUCCESS)) { // se il login ha successo registro il client per il callback
                                 username = arguments[0];
-                                // registrazione callback
+                                // registrazione callback per le notifiche riguardo l'aggiornamento della lista follower locale
                                 try {
                                     Registry callbackregistry = LocateRegistry.getRegistry(server_address, client_rmi_callback_port);
-                                    server = (WinSomeCallbackInterface) callbackregistry.lookup("winsome-server-callback");
+                                    server = (WinSomeCallbackInterface) callbackregistry.lookup(server_rmi_callback_registry_name);
                                     callbackobj = new NotifyEvent();
                                     callbackstub = (NotifyEventInterface) UnicastRemoteObject.exportObject(callbackobj, 0);
                                 } catch (Exception e) {
@@ -184,6 +203,7 @@ public class ClientMain {
                                     e.printStackTrace();
                                 }
 
+                                // al login ricevo la lista dei follower, per i successivi aggiornamenti si farà uso dell'RMI
                                 listaFollower = stub.initializeFollowerList(username, arguments[1]);
                                 System.out.println("> Login dell'utente '" + username + "' effettuato.");
                             } else {
@@ -193,28 +213,23 @@ public class ClientMain {
                         }
                         case "logout": {
                             out.println(raw_request);
-                            String a = in.readLine();
-                            if (server != null && a.equals(Utils.SOCIAL_LOGOUT_SUCCESS)) {
+                            String response = Utils.receive(in);
+                            // SE sono connesso ad un server & SE il logout ha successo ALLORA rimuovo il client dalla lista del callback
+                            if (server != null && response.equals(Utils.SOCIAL_LOGOUT_SUCCESS)) {
                                 System.out.println("> Logout dell'utente '" + username + "' effettuato");
                                 server.unregisterForCallback(username);
                                 UnicastRemoteObject.unexportObject(callbackobj, false);
                                 username = null;
                             } else {
-                                System.out.println("[Server]> " + a);
+                                System.out.println("[Server]> " + response);
                             }
                             break;
                         }
-                        case "listusers": {
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "listfollowers": {
+                        case "listfollowers": { // questa operazione è gestita lato client, quindi i controlli sono implementati qui
                             if(username == null) {
                                 System.out.println("[!] Non hai effettuato il login");
-                                return;
+                                break;
                             }
-
                             if (listaFollower.size() == 0) {
                                 System.out.println("> Nessun utente ti segue.");
                                 break;
@@ -227,105 +242,21 @@ public class ClientMain {
                             System.out.print("\n");
                             break;
                         }
-                        case "listfollowing": {
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "follow": {
-                            if (arguments.length != 1) {
-                                System.err.println("[!] Comando errato, usa: follow <username>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "unfollow": {
-                            if (arguments.length != 1) {
-                                System.err.println("[!] Comando errato, usa: unfollow <username>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
+                        // insieme di operazioni senza controlli sugli argomenti
+                        case "listusers":
+                        case "listfollowing":
+                        case "blog":
+                        case "showfeed":
+                        case "wallet":
+                        case "walletbtc":
+                        case "follow":
+                        case "unfollow":
+                        case "rewin":
+                        case "rate":
+                        case "showpost":
+                        case "comment":
+                        case "delete":
                         case "post": {
-                            if(arguments.length < 1) {
-                                System.err.println("[!] Comando errato, usa: post <titolo>|<contenuto>");
-                                break;
-                            }
-                            String req_body = raw_request.substring(5);
-                            String[] text = req_body.split("\\|");
-                            if(text.length != 2) {
-                                System.err.println("[!] Comando errato, usa: post <titolo>|<contenuto>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "blog": {
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "rewin": {
-                            if(arguments.length != 1) {
-                                System.err.println("[!] Comando errato, usa: rewin <id post>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "rate": {
-                            if(arguments.length != 2) {
-                                System.err.println("[!] Comando errato, usa: rate <id post> <+1/-1>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "showfeed": {
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "showpost": {
-                            if(arguments.length != 1) {
-                                System.err.println("[!] Comando errato, usa: showpost <id post>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "comment": {
-                            if(arguments.length < 2) {
-                                System.err.println("[!] Comando errato, usa: comment <id post> <commento>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "delete": {
-                            if(arguments.length != 1) {
-                                System.err.println("[!] Comando errato, usa: delete <id post>");
-                                break;
-                            }
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + in.readLine());
-                            break;
-                        }
-                        case "wallet": {
-                            out.println(raw_request);
-                            System.out.println("[Server]> " + Utils.receive(in));
-                            break;
-                        }
-                        case "walletbtc": {
                             out.println(raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
                             break;
@@ -337,15 +268,19 @@ public class ClientMain {
                     }
                 }
             } catch (IOException e) {
+                // se si verifica un errore IO probabilmente il server è stato spento oppure ha avuto un errore
                 System.err.print("[!] Connessione al server perduta. Riprovare a collegarsi? (S/N): ");
-                if(!lettore.nextLine().equalsIgnoreCase("S")) {
+                if(!reader.nextLine().equalsIgnoreCase("S")) {
                     break;
                 } else {
-                    reqFailed = true;
+                    // se il collegamento fallisce e stavamo facendo register o login, al prossimo collegamento riapparirà la query dell'utente senza che quest'ultimo debba riscriverla
+                    if(request.equals("register") || request.equals("login"))
+                        reqFailed = true;
                 }
             }
         }
 
+        // PROCEDURE CHIUSURA CLIENT
         // rimozione callback RMI
         try {
             if (server != null && callbackobj != null) {
@@ -355,15 +290,20 @@ public class ClientMain {
                 UnicastRemoteObject.unexportObject(callbackobj, false);
             }
         } catch (RemoteException ignored) {}
-        // chiudo lettore
-        lettore.close();
+        // chiudo reader
+        reader.close();
         // chiudo wallet update manager
         wum.stopExecution();
-
-        System.out.println("> Terminazione client.");
+        System.out.println("> Client terminato.");
     }
 
+    /**
+     * Verifica che le preferenze specificate nel file di configurazione siano corrette facendo vari controlli. Se
+     * anche una sola opzione è errata allora lancia un'eccezione.
+     * @throws ConfigurationException se una opzione della configurazione è errata
+     */
     private static void validateAndSavePreferences() throws ConfigurationException {
+        // controllo che l'indirizzo del server sia valido
         try {
             String temp = config.getPreference("server_address");
             InetAddress ignored = InetAddress.getByName(temp);
@@ -372,6 +312,7 @@ public class ClientMain {
             throw new ConfigurationException("valore 'server_address' non valido (" + e.getLocalizedMessage() + ")");
         }
 
+        // controllo la porta del server
         try {
             server_port = Integer.parseInt(config.getPreference("server_port"));
         } catch(NumberFormatException e) {
@@ -381,6 +322,7 @@ public class ClientMain {
             throw new ConfigurationException("valore 'server_port' non valido (" + server_port + " non e' una porta valida)");
         }
 
+        // controllo la porta dell'interfaccia RMI che permette al client di registrarsi
         try {
             server_rmi_port = Integer.parseInt(config.getPreference("server_rmi_port"));
         } catch(NumberFormatException e) {
@@ -390,6 +332,13 @@ public class ClientMain {
             throw new ConfigurationException("valore 'server_rmi_port' non valido (" + server_rmi_port + " non e' una porta valida)");
         }
 
+        // controllo che il nome del registry dell'interfaccia RMI sia presente nel config
+        server_rmi_registry_name = config.getPreference("server_rmi_registry_name");
+        if(server_rmi_registry_name == null) {
+            throw new ConfigurationException("valore 'server_rmi_registry_name' non valido (non e' presente nel file di configurazione)");
+        }
+
+        // controllo la porta dell'interfaccia RMI che permette al server di essere contattato per un cambiamento nella lista follower
         try {
             client_rmi_callback_port = Integer.parseInt(config.getPreference("client_rmi_callback_port"));
         } catch(NumberFormatException e) {
@@ -399,6 +348,13 @@ public class ClientMain {
             throw new ConfigurationException("valore 'client_rmi_callback_port' non valido (" + client_rmi_callback_port + " non e' una porta valida)");
         }
 
+        // controllo che il nome del registry dell'interfaccia RMI sia presente nel config
+        server_rmi_callback_registry_name = config.getPreference("server_rmi_callback_registry_name");
+        if(server_rmi_callback_registry_name == null) {
+            throw new ConfigurationException("valore 'server_rmi_callback_registry_name' non valido (non e' presente nel file di configurazione)");
+        }
+
+        // controllo che l'indirizzo a cui il server invia le notifiche di aggiornamento dei wallet sia valido
         try {
             String temp = config.getPreference("multicast_server_address");
             InetAddress temp2 = InetAddress.getByName(temp);
@@ -410,6 +366,7 @@ public class ClientMain {
             throw new ConfigurationException("valore 'multicast_server_address' non valido (" + e.getLocalizedMessage() + ")");
         }
 
+        // controllo la porta multicast su cui il server invia le notifiche di aggiornamento dei wallet
         try {
             multicast_server_port = Integer.parseInt(config.getPreference("multicast_server_port"));
         } catch(NumberFormatException e) {

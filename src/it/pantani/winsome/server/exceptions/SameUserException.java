@@ -6,8 +6,8 @@
 
 package it.pantani.winsome.server.exceptions;
 
-public class SameAuthorException extends Throwable {
-    public SameAuthorException() {
+public class SameUserException extends Throwable {
+    public SameUserException() {
         super();
     }
 }

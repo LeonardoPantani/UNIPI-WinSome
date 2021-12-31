@@ -8,5 +8,5 @@ data/followers_data.json
 data/following_data.json
 data/posts_data.json
 data/wallets_data.json
-data/server_config.properties
-data/client_config.properties
+data/config_server.properties
+data/config_client.properties

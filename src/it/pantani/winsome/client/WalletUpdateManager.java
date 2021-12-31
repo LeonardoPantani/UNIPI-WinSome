@@ -23,8 +23,8 @@ public class WalletUpdateManager implements Runnable {
     // non una variabile locale in modo da poter chiudere il socket forzatamente all'arresto del server
     private MulticastSocket multicast_socket;
 
-    private InetAddress multicast_address;
-    private int multicast_port;
+    private final InetAddress multicast_address;
+    private final int multicast_port;
 
     private volatile boolean stop = false;
 
@@ -33,12 +33,13 @@ public class WalletUpdateManager implements Runnable {
      * il socket multicast.
      * @param multicast_address indirizzo multicast
      * @param multicast_port porta multicast
+     * @throws ConfigurationException nel caso un parametro della configurazione fosse errato viene stampato un errore
      */
     public WalletUpdateManager(String multicast_address, int multicast_port) throws ConfigurationException {
         try {
             this.multicast_address = InetAddress.getByName(multicast_address);
         } catch(UnknownHostException e) {
-            System.err.println("[!] Errore, parametro multicast_address non valido, motivo: " + e.getLocalizedMessage());
+            throw new ConfigurationException("valore 'multicast_address' non valido (" + e.getLocalizedMessage() + ")");
         }
         if(!this.multicast_address.isMulticastAddress()) {
             throw new ConfigurationException("valore 'multicast_address' non valido (" + this.multicast_address.getHostAddress() + " non e' un indirizzo multicast)");
@@ -55,9 +56,11 @@ public class WalletUpdateManager implements Runnable {
      * stop non è vera (viene impostata a tale valore solo da stopExecution() chiamata nel main alla chiusura del server).
      * Alla ricezione di ogni pacchetto stampo un messaggio nel client e ricomincio ad ascoltare.
      */
+
     public void run() {
         try {
             multicast_socket = new MulticastSocket(multicast_port);
+            //noinspection deprecation
             multicast_socket.joinGroup(multicast_address);
 
             byte[] buffer_array;
@@ -75,7 +78,8 @@ public class WalletUpdateManager implements Runnable {
                     packet = new DatagramPacket(buffer_array, string_dimension);
                     multicast_socket.receive(packet); // ricevo il secondo pacchetto che contiene i dati utili
                     String total_gain = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("> Il server ha distribuito un totale di " + total_gain + " come premi per vari post, puoi vedere il tuo portafoglio con il comando 'wallet'.");
+                    System.out.println("\n> Il server ha distribuito un totale di " + total_gain + " come premi per vari post, puoi vedere il tuo portafoglio con il comando 'wallet'.");
+                    System.out.print("> ");
                 } catch(IOException ignored) { }
             }
         } catch(IOException e) {

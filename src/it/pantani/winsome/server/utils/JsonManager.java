@@ -235,15 +235,14 @@ public class JsonManager {
      * @param path il percorso del nuovo file
      * @return vero se il file viene creato, falso altrimenti
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean createFile(String path) {
         boolean ignored = new File(WINSOME_FOLDER_NAME).mkdirs(); // genero la cartella, se non esiste già
 
         try {
             File f = new File(path);
-            if(!f.exists() && !f.createNewFile()) { // se il file non esiste e non è stato creato dò errore
-                return false;
-            }
-            return true;
+            // se il file non esiste e non è stato creato dò errore
+            return f.exists() || f.createNewFile();
         } catch (IOException e) {
             e.printStackTrace();
             return false;

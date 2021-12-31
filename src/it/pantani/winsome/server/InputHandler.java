@@ -12,6 +12,7 @@ import it.pantani.winsome.rmi.WinSomeCallback;
 import it.pantani.winsome.other.ConfigManager;
 import it.pantani.winsome.other.Utils;
 
+import javax.naming.ConfigurationException;
 import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
@@ -24,10 +25,21 @@ import static it.pantani.winsome.other.Utils.getFormattedDate;
 
 /**
  * Classe che gestisce l'input di richieste del server. Permette di eseguire alcuni comandi per vedere l'andamento del server.
- * E' ad utilizzo amministrativo e di gestione, per questo sarà poco commentata perché non molto rilevante.
+ * E' ad utilizzo amministrativo e di gestione, sarà poco commentata perché non molto rilevante.
  */
 public class InputHandler implements Runnable {
-    private volatile boolean stop = false;
+    private final ConfigManager config;
+
+    private volatile boolean stop;
+
+    String default_reason_transaction;
+
+    public InputHandler(ConfigManager config) throws ConfigurationException {
+        this.config = config;
+        stop = false;
+
+        validateAndSavePreferences();
+    }
 
     /**
      * Processo che viene eseguito all'avvio del server che aspetta l'input dell'utente.
@@ -153,7 +165,7 @@ public class InputHandler implements Runnable {
     private void kickClient(int client_port) {
         boolean found_client = false;
 
-        for(Socket x : ServerMain.listaSocket) {
+        for(Socket x : ServerMain.socketsList) {
             if(x.getPort() == client_port) {
                 found_client = true;
                 try {
@@ -161,7 +173,7 @@ public class InputHandler implements Runnable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                ServerMain.listaSocket.remove(x);
+                ServerMain.socketsList.remove(x);
             }
         }
 
@@ -173,31 +185,38 @@ public class InputHandler implements Runnable {
     }
 
     private void kickAllClients() {
-        for(Socket x : ServerMain.listaSocket) {
+        for(Socket x : ServerMain.socketsList) {
             try {
                 x.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            ServerMain.listaSocket.remove(x);
+            ServerMain.socketsList.remove(x);
         }
 
         System.out.println("> Connessione a tutti client chiusa.");
     }
 
     private void listClients() {
-        int numClients = ServerMain.listaSocket.size();
+        int numClients = ServerMain.socketsList.size();
         if(numClients == 0) {
             System.out.println("> Nessun client connesso");
             return;
         }
 
         System.out.println("> LISTA CLIENT CONNESSI (" + numClients + "):");
-        for(Socket x : ServerMain.listaSocket) {
+        for(Socket x : ServerMain.socketsList) {
             System.out.print("> Client " + x.getInetAddress() + ":" + x.getPort());
-            WinSomeSession wss = ConnectionHandler.getSessionBySocket(x);
-            if(wss != null) {
-                System.out.println(" (utente connesso: " + wss.getUsername() + " | data login: " + getFormattedDate(wss.getTimestamp()) + ")");
+            // ottengo la sessione dal socket del client
+            WinSomeSession user_session = null;
+            for (WinSomeSession wss : ServerMain.sessionsList.values()) {
+                if(wss.getSessionSocket() == x) {
+                    user_session = wss;
+                }
+            }
+            // se l'ho trovata allora l'utente è collegato e lo stampo, altrimenti mostro "nessun login"
+            if(user_session != null) {
+                System.out.println(" (utente connesso: " + user_session.getUsername() + " | data login: " + getFormattedDate(user_session.getTimestamp()) + ")");
             } else {
                 System.out.println(" (nessun login)");
             }
@@ -348,5 +367,18 @@ public class InputHandler implements Runnable {
 
     private void unknownCommand() {
         System.out.println("> Comando sconosciuto, scrivi 'help' per una lista di comandi.");
+    }
+
+    /**
+     * Verifica che le preferenze specificate nel file di configurazione siano corrette facendo vari controlli. Se
+     * anche una sola opzione è errata allora lancia un'eccezione.
+     * @throws ConfigurationException se una opzione della configurazione è errata
+     */
+    private void validateAndSavePreferences() throws ConfigurationException {
+        // controllo che il motivo di default di una transazione non sia nullo
+        default_reason_transaction = config.getPreference("default_reason_transaction");
+        if (default_reason_transaction == null) {
+            throw new ConfigurationException("valore 'default_reason_transaction' non valido (non e' presente nel file di configurazione)");
+        }
     }
 }

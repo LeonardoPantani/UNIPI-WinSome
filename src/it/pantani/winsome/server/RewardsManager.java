@@ -35,8 +35,6 @@ public class RewardsManager implements Runnable {
     private int rewards_check_timeout;
     public long last_rewards_check;
 
-    public int decimal_places;
-
     private int percentage_reward_author;
     private int percentage_reward_curator;
 
@@ -49,87 +47,13 @@ public class RewardsManager implements Runnable {
      * Questo costruttore si occupa di gestire anche eventuali errori di configurazione nel file.
      * @param config L'oggetto che contiene tutte le proprietà ricevute in input dal file di configurazione
      * @param social L'oggetto che contiene tutti i metodi per accedere agli utenti e post del social network
-     *
-     * @throws ConfigurationException Nel caso un parametro della configurazione fosse errato viene stampato un errore
+     * @throws ConfigurationException nel caso un parametro della configurazione fosse errato viene stampato un errore
      */
     public RewardsManager(ConfigManager config, SocialManager social) throws ConfigurationException {
         this.config = config;
         this.social = social;
 
-        // controllo indirizzo multicast
-        try {
-            multicast_address = InetAddress.getByName(config.getPreference("multicast_address"));
-        } catch(UnknownHostException e) {
-            throw new ConfigurationException("valore 'multicast_address' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(!multicast_address.isMulticastAddress()) {
-            throw new ConfigurationException("valore 'multicast_address' non valido (" + multicast_address.getHostAddress() + " non e' un indirizzo multicast)");
-        }
-
-        // controllo porta multicast
-        try {
-            multicast_port = Integer.parseInt(config.getPreference("multicast_port"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'multicast_port' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(multicast_port <= 0 || multicast_port >= 65535) {
-            throw new ConfigurationException("valore 'multicast_port' non valido (" +multicast_port + " non e' una porta valida)");
-        }
-
-        // controllo timeout premi in valuta winsome
-        try {
-            rewards_check_timeout = Integer.parseInt(config.getPreference("rewards_check_timeout"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'rewards_check_timeout' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(rewards_check_timeout <= 0) {
-            throw new ConfigurationException("valore 'rewards_check_timeout' non valido (" + rewards_check_timeout + " deve essere un numero maggiore di 0)");
-        }
-
-        // controllo numero di cifre decimali della valuta winsome
-        try {
-            decimal_places = Integer.parseInt(config.getPreference("currency_decimal_places"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'currency_decimal_places' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(decimal_places < 0 || decimal_places > 8) {
-            throw new ConfigurationException("valore 'currency_decimal_places' non valido (" + decimal_places + " dovrebbe essere compreso tra 0 e 8)");
-        }
-
-        // controllo tempo di ultima verifica premi (questo valore non dovrebbe essere modificato)
-        try {
-            last_rewards_check = Long.parseLong(config.getPreference("last_rewards_check"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'last_rewards_check' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(last_rewards_check < 0) {
-            throw new ConfigurationException("valore 'last_rewards_check' non valido (" + last_rewards_check + " non puo' essere negativo)");
-        }
-
-        // controllo percentuale autore e curatore del premio in valuta winsome
-        try {
-            percentage_reward_author = Integer.parseInt(config.getPreference("percentage_reward_author"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'percentage_reward_author' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        try {
-            percentage_reward_curator = Integer.parseInt(config.getPreference("percentage_reward_curator"));
-        } catch(NumberFormatException e) {
-            throw new ConfigurationException("valore 'percentage_reward_curator' non valido (" + e.getLocalizedMessage() + ")");
-        }
-        if(percentage_reward_author + percentage_reward_curator != 100) {
-            throw new ConfigurationException("valore 'percentage_reward_curator' non valido (la somma delle percentuali percentage_reward_author e percentage_reward_curator non raggiunge 100)");
-        }
-
-        // controllo causali delle transazioni relative ai premi dei post
-        author_reward_reason = config.getPreference("author_reward_reason_transaction");
-        if(author_reward_reason == null) {
-            throw new ConfigurationException("valore 'author_reward_reason' non valido (non e' presente nel file di configurazione)");
-        }
-        curator_reward_reason = config.getPreference("curator_reward_reason_transaction");
-        if(curator_reward_reason == null) {
-            throw new ConfigurationException("valore 'curator_reward_reason' non valido (non e' presente nel file di configurazione)");
-        }
+        validateAndSavePreferences();
     }
 
     /**
@@ -265,5 +189,78 @@ public class RewardsManager implements Runnable {
      */
     public void savePersistentData() {
         config.forceSavePreference("last_rewards_check", String.valueOf(last_rewards_check));
+    }
+
+    /**
+     * Verifica che le preferenze specificate nel file di configurazione siano corrette facendo vari controlli. Se
+     * anche una sola opzione è errata allora lancia un'eccezione.
+     *
+     * @throws ConfigurationException se una opzione della configurazione è errata
+     */
+    private void validateAndSavePreferences() throws ConfigurationException {
+        // controllo indirizzo multicast
+        try {
+            multicast_address = InetAddress.getByName(config.getPreference("multicast_address"));
+        } catch(UnknownHostException e) {
+            throw new ConfigurationException("valore 'multicast_address' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(!multicast_address.isMulticastAddress()) {
+            throw new ConfigurationException("valore 'multicast_address' non valido (" + multicast_address.getHostAddress() + " non e' un indirizzo multicast)");
+        }
+
+        // controllo porta multicast
+        try {
+            multicast_port = Integer.parseInt(config.getPreference("multicast_port"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'multicast_port' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(multicast_port <= 0 || multicast_port >= 65535) {
+            throw new ConfigurationException("valore 'multicast_port' non valido (" +multicast_port + " non e' una porta valida)");
+        }
+
+        // controllo timeout premi in valuta winsome
+        try {
+            rewards_check_timeout = Integer.parseInt(config.getPreference("rewards_check_timeout"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'rewards_check_timeout' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(rewards_check_timeout <= 0) {
+            throw new ConfigurationException("valore 'rewards_check_timeout' non valido (" + rewards_check_timeout + " deve essere un numero maggiore di 0)");
+        }
+
+        // controllo tempo di ultima verifica premi (questo valore non dovrebbe essere modificato)
+        try {
+            last_rewards_check = Long.parseLong(config.getPreference("last_rewards_check"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'last_rewards_check' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(last_rewards_check < 0) {
+            throw new ConfigurationException("valore 'last_rewards_check' non valido (" + last_rewards_check + " non puo' essere negativo)");
+        }
+
+        // controllo percentuale autore e curatore del premio in valuta winsome
+        try {
+            percentage_reward_author = Integer.parseInt(config.getPreference("percentage_reward_author"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'percentage_reward_author' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        try {
+            percentage_reward_curator = Integer.parseInt(config.getPreference("percentage_reward_curator"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'percentage_reward_curator' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if(percentage_reward_author + percentage_reward_curator != 100) {
+            throw new ConfigurationException("valore 'percentage_reward_curator' non valido (la somma delle percentuali percentage_reward_author e percentage_reward_curator non raggiunge 100)");
+        }
+
+        // controllo causali delle transazioni relative ai premi dei post
+        author_reward_reason = config.getPreference("author_reward_reason_transaction");
+        if(author_reward_reason == null) {
+            throw new ConfigurationException("valore 'author_reward_reason' non valido (non e' presente nel file di configurazione)");
+        }
+        curator_reward_reason = config.getPreference("curator_reward_reason_transaction");
+        if(curator_reward_reason == null) {
+            throw new ConfigurationException("valore 'curator_reward_reason' non valido (non e' presente nel file di configurazione)");
+        }
     }
 }

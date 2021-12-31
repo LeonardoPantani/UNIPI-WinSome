@@ -17,8 +17,8 @@ public class ConfigManager {
     private static final String DEFAULT_GETPREFERENCE = null; // valore di default del metodo getPreference
     private static final String CONFIG_COMMENT = "#########################################################################\n Questo è file di configurazione di WINSOME.\n I parametri qui sotto dopo il '=' sono modificabili.\n Puoi invece inserire commenti mettendo un '#' all'inizio della riga\n##########################################################################";
 
-    private static final String DEFAULT_SERVER_FILE_PATH = "server_config.properties"; // nome del config del server
-    private static final String DEFAULT_CLIENT_FILE_PATH = "client_config.properties"; // nome del config del client
+    private static final String DEFAULT_SERVER_FILE_PATH = "config_server.properties"; // nome del config del server
+    private static final String DEFAULT_CLIENT_FILE_PATH = "config_client.properties"; // nome del config del client
 
     private final Properties prop;
     private final String file_path;
@@ -39,7 +39,9 @@ public class ConfigManager {
             if(isServer) {
                 prop.setProperty("server_port", "6789"); // porta del server
                 prop.setProperty("rmi_server_port", "1099"); // porta RMI del server
+                prop.setProperty("rmi_server_registry_name", "winsome-server"); // nome registro RMI del server
                 prop.setProperty("rmi_callback_client_port", "1100"); // porta callback RMI del client
+                prop.setProperty("rmi_callback_client_registry_name", "winsome-server-callback"); // nome registro callback RMI del client
                 prop.setProperty("post_max_title_length", "20"); // lunghezza massima del titolo del post
                 prop.setProperty("post_max_content_length", "500"); // lunghezza massima del corpo del post
                 prop.setProperty("currency_name_singular", "wincoin"); // nome della valuta singolare
@@ -60,6 +62,8 @@ public class ConfigManager {
                 prop.setProperty("server_port", "6789"); // porta del server
                 prop.setProperty("server_rmi_port", "1099"); // porta RMI del server
                 prop.setProperty("client_rmi_callback_port", "1100"); // porta callback RMI del client
+                prop.setProperty("server_rmi_registry_name", "winsome-server"); // nome registro RMI del server
+                prop.setProperty("server_rmi_callback_registry_name", "winsome-server-callback"); // nome registro callback RMI
                 prop.setProperty("multicast_server_address", "224.0.0.1"); // indirizzo multicast per le notifiche
                 prop.setProperty("multicast_server_port", "6788"); // porta del multicast per le notifiche
             }
