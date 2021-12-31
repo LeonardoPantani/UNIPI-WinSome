@@ -101,8 +101,9 @@ public class RewardsManager implements Runnable {
                 // aspetto rewards_check_timeout millisecondi prima di effettuare di nuovo il controllo
                 try {
                     Thread.sleep(rewards_check_timeout);
-                } catch(InterruptedException ignored) {}
+                } catch(InterruptedException ignored) { }
             }
+            System.out.println("> Rewards manager chiuso.");
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -176,7 +177,11 @@ public class RewardsManager implements Runnable {
     }
 
     /**
-     * Metodo per bloccare l'esecuzione del calcolo dei reward
+     * Metodo per bloccare l'esecuzione del thread di assegnazione premi. Chiamare solo questo metodo fa attendere
+     * che la sleep finisca prima di terminare il thread. Chiamare questo metodo insieme a thread.interrupt() permette
+     * di terminare subito l'esecuzione del thread senza aspettare la sleep.
+     * ATTENZIONE: non chiamare esclusivamente thread.interrupt() perchè questa operazione terminerebbe la sleep
+     * (se attualmente il thread ci è bloccato) ma non il thread che comunque resterebbe in ciclo.
      */
     public void stopExecution() {
         stop = true;

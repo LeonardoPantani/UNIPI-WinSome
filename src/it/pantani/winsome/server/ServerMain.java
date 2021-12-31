@@ -39,6 +39,7 @@ public class ServerMain {
     public static JsonManager jsonmngr;
     public static SocialManager social;
     public static RewardsManager rewards;
+    public static PeriodicSaveManager psmngr;
 
     // utilizzati dal connectionhandler
     // mantengono la lista di socket connessi e la lista delle sessioni di tutti gli utenti collegati
@@ -84,12 +85,12 @@ public class ServerMain {
         System.out.println("> Inizializzazione rewards...");
         try {
             rewards = new RewardsManager(config, social);
-            Thread rm = new Thread(rewards);
-            rm.start();
         } catch(ConfigurationException e) {
             System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
             return;
         }
+        Thread r_manager = new Thread(rewards);
+        r_manager.start();
 
         // carico i dati di persistenza
         System.out.println("> Caricamento dati da json...");
@@ -109,6 +110,16 @@ public class ServerMain {
             return;
         }
         Thread in_handler = new Thread(ih);
+
+        // gestisce tutta la parte di salvataggio dati persistente periodica
+        System.out.println("> Inizializzazione periodic save manager...");
+        try {
+            psmngr = new PeriodicSaveManager(config, jsonmngr, social, rewards);
+        } catch(ConfigurationException e) {
+            System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
+            return;
+        }
+        Thread p_save_manager = new Thread(psmngr);
 
         // rmi register
         WinSomeService obj = new WinSomeService();
@@ -148,6 +159,9 @@ public class ServerMain {
             return;
         }
 
+        // avvio il salvataggio periodico
+        p_save_manager.start();
+
         System.out.println("> Server in ascolto sulla porta " + server_port + ". Scrivi 'help' per una lista di comandi.");
         in_handler.start(); // avvio ora il thread che attende l'input dell'amministratore del server
 
@@ -167,6 +181,7 @@ public class ServerMain {
             }
         }
 
+        // ---------------- CHIUSURA SERVER
         // se esco dal while mi preparo ad arrestare tutti i thread, collegamenti e chiudere le risorse ancora aperte
 
         // chiusura socket dei client
@@ -190,7 +205,10 @@ public class ServerMain {
         } catch(InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("> Handler input chiuso.");
+
+        // chiusura del rewards manager
+        rewards.stopExecution();
+        r_manager.interrupt();
 
         // chiusura pool
         pool.shutdown();
@@ -213,17 +231,9 @@ public class ServerMain {
         }
         System.out.println("> RMI chiuso.");
 
-        // salvataggio dati persistente
-        try {
-            jsonmngr.saveAll(social);
-            social.savePersistentData();
-            rewards.savePersistentData();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-
-        // chiusura del thread RewardsManager
-        rewards.stopExecution();
+        // salvataggio dati finale
+        psmngr.stopExecution();
+        p_save_manager.interrupt();
 
         System.out.println("> Server terminato.");
     }

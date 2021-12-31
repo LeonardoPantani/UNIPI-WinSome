@@ -329,8 +329,8 @@ public class SocialManager {
         if(!userList.containsKey(username)) throw new UserNotFoundException();
         WinSomePost toRewin = postList.get(post_id);
         if(toRewin == null) throw new PostNotFoundException();
-        if(isPostNotInFeed(post_id, username)) throw new NotInFeedException();
         if(toRewin.getAuthor().equals(username)) throw new SameUserException();
+        if(isPostNotInFeed(post_id, username)) throw new NotInFeedException();
         if(!toRewin.addRewin(username)) throw new InvalidOperationException();
     }
 
@@ -345,7 +345,7 @@ public class SocialManager {
     public void followUser(String username, String newFollowing) throws UserNotFoundException, SameUserException, InvalidOperationException {
         if(username.equals(newFollowing)) throw new SameUserException();
         if(!userList.containsKey(newFollowing)) throw new UserNotFoundException();
-        if(followersList.get(newFollowing).contains(username)) throw new InvalidOperationException();
+        if(followersList.get(newFollowing) != null && followersList.get(newFollowing).contains(username)) throw new InvalidOperationException();
 
         addFollowing(username, newFollowing);
         addFollower(newFollowing, username);
@@ -362,10 +362,11 @@ public class SocialManager {
     public void unfollowUser(String username, String oldFollowing) throws UserNotFoundException, SameUserException, InvalidOperationException {
         if(username.equals(oldFollowing)) throw new SameUserException();
         if(!userList.containsKey(oldFollowing)) throw new UserNotFoundException();
+        if(followersList.get(oldFollowing) == null) throw new InvalidOperationException();
         if(!followersList.get(oldFollowing).contains(username)) throw new InvalidOperationException();
 
-        removeFollowing(oldFollowing, username);
-        removeFollower(username, oldFollowing);
+        removeFollowing(username, oldFollowing);
+        removeFollower(oldFollowing, username);
     }
 
     /**

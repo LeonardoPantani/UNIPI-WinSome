@@ -49,12 +49,13 @@ public class ConfigManager {
                 prop.setProperty("currency_decimal_places", "2"); // cifre decimali
                 prop.setProperty("multicast_address", "224.0.0.1"); // indirizzo multicast
                 prop.setProperty("multicast_port", "6788"); // porta multicast
+                prop.setProperty("autosave_interval", "60000"); // intervallo di salvataggio automatico dei dati di persistenza
                 prop.setProperty("default_reason_transaction", "SYSTEM"); // causale di default di una transazione
                 prop.setProperty("author_reward_reason_transaction", "Author reward for post #{post}"); // causale di una transazione relativa ad un premio (per l'autore del post winsome)
                 prop.setProperty("curator_reward_reason_transaction", "Curator reward for post #{post}");  // causale di una transazione relativa ad un premio (per un curatore di un post winsome)
                 prop.setProperty("percentage_reward_author", "70"); // percentuale del premio di un post dell'autore
                 prop.setProperty("percentage_reward_curator", "30"); // percentuale del premio di un post del curatore
-                prop.setProperty("rewards_check_timeout", "10000"); // tempo che il RewardsManager dovrà attendere ogni volta che fa un controllo prima di farne un altro
+                prop.setProperty("rewards_check_timeout", "15000"); // tempo che il RewardsManager dovrà attendere ogni volta che fa un controllo prima di farne un altro
                 prop.setProperty("last_rewards_check", "0"); // [da non modificare] data UNIX dell'ultimo controllo del RewardsManager
                 prop.setProperty("last_post_id", "0"); // [da non modificare] contatore dell'ultimo post di WinSome
             } else {
