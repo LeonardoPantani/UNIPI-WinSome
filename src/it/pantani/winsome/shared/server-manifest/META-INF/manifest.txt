@@ -1,0 +1,1 @@
+Class-Path: src/it/pantani/winsome/libs/gson-2.8.9.jar src/it/pantani/winsome/libs/spring-security-crypto-5.4.7.jar
