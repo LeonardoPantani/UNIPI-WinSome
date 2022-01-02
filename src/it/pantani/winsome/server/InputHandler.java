@@ -8,9 +8,9 @@ package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.WinSomeSession;
 import it.pantani.winsome.server.entities.WinSomeUser;
-import it.pantani.winsome.rmi.WinSomeCallback;
-import it.pantani.winsome.other.ConfigManager;
-import it.pantani.winsome.other.Utils;
+import it.pantani.winsome.server.rmi.WinSomeCallback;
+import it.pantani.winsome.shared.ConfigManager;
+import it.pantani.winsome.shared.Utils;
 
 import javax.naming.ConfigurationException;
 import java.io.IOException;
@@ -21,7 +21,7 @@ import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 
-import static it.pantani.winsome.other.Utils.getFormattedDate;
+import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
 /**
  * Classe che gestisce l'input di richieste del server. Permette di eseguire alcuni comandi per vedere l'andamento del server.

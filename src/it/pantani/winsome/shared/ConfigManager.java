@@ -4,7 +4,7 @@
  * University of Pisa - Department of Computer Science
  */
 
-package it.pantani.winsome.other;
+package it.pantani.winsome.shared;
 
 import java.io.*;
 import java.util.Properties;

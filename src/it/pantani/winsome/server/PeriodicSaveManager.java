@@ -6,7 +6,7 @@
 
 package it.pantani.winsome.server;
 
-import it.pantani.winsome.other.ConfigManager;
+import it.pantani.winsome.shared.ConfigManager;
 import it.pantani.winsome.server.utils.JsonManager;
 
 import javax.naming.ConfigurationException;

@@ -4,13 +4,14 @@
  * University of Pisa - Department of Computer Science
  */
 
-package it.pantani.winsome.rmi;
+package it.pantani.winsome.server.rmi;
 
+import it.pantani.winsome.shared.rmi.WinSomeServiceInterface;
 import it.pantani.winsome.server.ServerMain;
 import it.pantani.winsome.server.SocialManager;
 import it.pantani.winsome.server.entities.WinSomeUser;
 import it.pantani.winsome.server.utils.PasswordManager;
-import it.pantani.winsome.other.Utils;
+import it.pantani.winsome.shared.Utils;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;

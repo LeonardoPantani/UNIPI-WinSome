@@ -4,9 +4,10 @@
  * University of Pisa - Department of Computer Science
  */
 
-package it.pantani.winsome.rmi;
+package it.pantani.winsome.client.rmi;
 
 import it.pantani.winsome.client.ClientMain;
+import it.pantani.winsome.shared.rmi.NotifyEventInterface;
 
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteObject;

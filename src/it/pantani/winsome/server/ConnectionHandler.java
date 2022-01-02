@@ -8,9 +8,9 @@ package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.*;
 import it.pantani.winsome.server.exceptions.*;
-import it.pantani.winsome.rmi.WinSomeCallback;
-import it.pantani.winsome.other.ConfigManager;
-import it.pantani.winsome.other.Utils;
+import it.pantani.winsome.server.rmi.WinSomeCallback;
+import it.pantani.winsome.shared.ConfigManager;
+import it.pantani.winsome.shared.Utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static it.pantani.winsome.other.Utils.getFormattedDate;
+import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
 /**
  * Una delle classi principali che si occupa di gestire la connessione con un client. Quello che fa in breve è ricevere

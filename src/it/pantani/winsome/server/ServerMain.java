@@ -7,11 +7,11 @@
 package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.WinSomeSession;
-import it.pantani.winsome.rmi.WinSomeCallback;
-import it.pantani.winsome.rmi.WinSomeCallbackInterface;
-import it.pantani.winsome.rmi.WinSomeService;
-import it.pantani.winsome.rmi.WinSomeServiceInterface;
-import it.pantani.winsome.other.ConfigManager;
+import it.pantani.winsome.server.rmi.WinSomeCallback;
+import it.pantani.winsome.shared.rmi.WinSomeCallbackInterface;
+import it.pantani.winsome.server.rmi.WinSomeService;
+import it.pantani.winsome.shared.rmi.WinSomeServiceInterface;
+import it.pantani.winsome.shared.ConfigManager;
 import it.pantani.winsome.server.utils.JsonManager;
 
 import javax.naming.ConfigurationException;

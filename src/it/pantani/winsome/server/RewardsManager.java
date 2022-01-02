@@ -8,7 +8,7 @@ package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.WinSomePost;
 import it.pantani.winsome.server.entities.WinSomeVote;
-import it.pantani.winsome.other.ConfigManager;
+import it.pantani.winsome.shared.ConfigManager;
 
 import javax.naming.ConfigurationException;
 import java.io.IOException;

@@ -11,9 +11,9 @@ import it.pantani.winsome.server.entities.WinSomePost;
 import it.pantani.winsome.server.entities.WinSomeUser;
 import it.pantani.winsome.server.entities.WinSomeWallet;
 import it.pantani.winsome.server.exceptions.*;
-import it.pantani.winsome.other.ConfigManager;
+import it.pantani.winsome.shared.ConfigManager;
 import it.pantani.winsome.server.utils.PasswordManager;
-import it.pantani.winsome.other.Utils;
+import it.pantani.winsome.shared.Utils;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static it.pantani.winsome.other.Utils.getFormattedDate;
+import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
 /**
  * Classe cuore del social WinSome. Implementa tutte le operazioni che il connectionhandler dovrà utilizzare per rispondere
@@ -126,7 +126,7 @@ public class SocialManager {
         WinSomePost toComment = postList.get(post_id);
         if(toComment == null) throw new PostNotFoundException();
         if(toComment.getAuthor().equals(username)) throw new SameUserException();
-        if(!isPostNotInFeed(post_id, username)) throw new NotInFeedException();
+        if(isPostNotInFeed(post_id, username)) throw new NotInFeedException();
 
         toComment.addComment(username, text);
     }

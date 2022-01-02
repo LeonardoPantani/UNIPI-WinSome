@@ -6,12 +6,12 @@
 
 package it.pantani.winsome.client;
 
-import it.pantani.winsome.other.ConfigManager;
-import it.pantani.winsome.other.Utils;
-import it.pantani.winsome.rmi.NotifyEvent;
-import it.pantani.winsome.rmi.NotifyEventInterface;
-import it.pantani.winsome.rmi.WinSomeCallbackInterface;
-import it.pantani.winsome.rmi.WinSomeServiceInterface;
+import it.pantani.winsome.shared.ConfigManager;
+import it.pantani.winsome.shared.Utils;
+import it.pantani.winsome.client.rmi.NotifyEvent;
+import it.pantani.winsome.shared.rmi.NotifyEventInterface;
+import it.pantani.winsome.shared.rmi.WinSomeCallbackInterface;
+import it.pantani.winsome.shared.rmi.WinSomeServiceInterface;
 
 import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
@@ -91,6 +91,7 @@ public class ClientMain {
         String raw_request = "";
         String request = "";
         boolean reqFailed = false;
+        boolean connLost;
 
         // ascolto aggiornamenti wallet
         WalletUpdateManager wum;
@@ -114,6 +115,7 @@ public class ClientMain {
                 if(reader.nextLine().equalsIgnoreCase("S")) {
                     continue;
                 } else {
+                    connLost = true;
                     break;
                 }
             }
@@ -136,6 +138,7 @@ public class ClientMain {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+                connLost = false;
                 // ciclo per ogni richiesta fatta dall'utente
                 while(true) {
                     System.out.print("> ");
@@ -219,6 +222,7 @@ public class ClientMain {
                                 System.out.println("> Logout dell'utente '" + username + "' effettuato");
                                 server.unregisterForCallback(username);
                                 UnicastRemoteObject.unexportObject(callbackobj, false);
+                                callbackobj = null;
                                 username = null;
                             } else {
                                 System.out.println("[Server]> " + response);
@@ -271,6 +275,7 @@ public class ClientMain {
                 // se si verifica un errore IO probabilmente il server è stato spento oppure ha avuto un errore
                 System.err.print("[!] Connessione al server perduta. Riprovare a collegarsi? (S/N): ");
                 if(!reader.nextLine().equalsIgnoreCase("S")) {
+                    connLost = true;
                     break;
                 } else {
                     // se il collegamento fallisce e stavamo facendo register o login, al prossimo collegamento riapparirà la query dell'utente senza che quest'ultimo debba riscriverla
@@ -283,13 +288,15 @@ public class ClientMain {
         // PROCEDURE CHIUSURA CLIENT
         // rimozione callback RMI
         try {
-            if (server != null && callbackobj != null) {
-                if(username != null)
-                    server.unregisterForCallback(username);
+            if (!connLost && server != null && username != null) {
+                // mi devo rimuovere dal callback solo se sono loggato e la connessione al server non è stata persa
+                server.unregisterForCallback(username);
+            }
 
+            if(callbackobj != null) {
                 UnicastRemoteObject.unexportObject(callbackobj, false);
             }
-        } catch (RemoteException ignored) {}
+        } catch (RemoteException ignored) { }
         // chiudo reader
         reader.close();
         // chiudo wallet update manager
