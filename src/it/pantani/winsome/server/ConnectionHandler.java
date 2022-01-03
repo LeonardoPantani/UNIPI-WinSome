@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
@@ -128,18 +130,34 @@ public class ConnectionHandler implements Runnable {
                             break;
                         }
                         case "post": {
-                            if(raw_request.length() < 5) {
-                                out.println("Comando errato, usa: post <titolo>|<contenuto>");
+                            // se il numero di parentesi non è pari allora restituisco un errore
+                            if(raw_request.chars().filter(ch -> ch == '"').count() % 2 != 0) {
+                                out.println("comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
                                 break;
                             }
+
+                            // ottengo i valori tra parentesi
+                            Pattern p = Pattern.compile("\"([^\"]*)\"");
+                            Matcher m = p.matcher(raw_request);
+                            ArrayList<String> text = new ArrayList<>();
+                            while(m.find()) {
+                                text.add(m.group(1));
+                            }
+
+                            // se i parametri forniti non sono nè 1 nè 2 allora restituisco errore
+                            if(text.size() != 1 && text.size() != 2) {
+                                out.println("comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
+                                break;
+                            }
+
+                            // il titolo del post non deve essere vuoto
+                            if(text.get(0).trim().length() == 0) {
+                                out.println("comando errato, il titolo del post non puo' essere vuoto");
+                                break;
+                            }
+
                             // scelta progettuale: il post deve avere sia titolo che contenuto obbligatoriamente
-                            String req_body = raw_request.substring(5);
-                            String[] text = req_body.split("\\|");
-                            if(text.length != 2) {
-                                out.println("Comando errato, usa: post <titolo>|<contenuto>");
-                                break;
-                            }
-                            post(text[0], text[1]);
+                            post(text);
                             break;
                         }
                         case "blog": {
@@ -447,16 +465,22 @@ public class ConnectionHandler implements Runnable {
 
     /**
      * Fa inviare all'utente attualmente connesso un post con un titolo e un corpo.
-     * @param post_title il titolo del nuovo post
-     * @param post_content il corpo del nuovo post
+     * @param arguments_list lista degli argomenti solo i primi due valori sono considerati e sono rispettivamente:
+     *                       titolo del post                -> indice 0
+     *                       contenuto del post (opzionale) -> indice 1
      */
-    private void post(String post_title, String post_content) {
+    private void post(ArrayList<String> arguments_list) {
         if(isNotLogged()) {
             out.println("non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
+
+        String post_title = arguments_list.get(0).trim();
+        String post_content = "";
+
+        if(arguments_list.size() >= 2) post_content = arguments_list.get(1).trim();
 
         try {
             int new_post_id = s.createPost(current_user, post_title, post_content);

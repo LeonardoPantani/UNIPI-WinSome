@@ -28,6 +28,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -149,7 +150,11 @@ public class ClientMain {
                         reader.nextLine();
                         reqFailed = false;
                     } else {
-                        raw_request = reader.nextLine();
+                        raw_request = "";
+                        try {
+                            raw_request = reader.nextLine();
+                        } catch(NoSuchElementException ignored) {} // per evitare errore se si preme CTRL+C su Windows
+
                         if(raw_request.equals("")) continue;
                     }
                     String[] temp = raw_request.split(" ");

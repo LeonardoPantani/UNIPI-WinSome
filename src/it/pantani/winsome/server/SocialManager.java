@@ -583,7 +583,6 @@ public class SocialManager {
      */
     public boolean checkUserPassword(WinSomeUser u, String passwordToVerify) {
         if(u == null) return false;
-
         return PasswordManager.checkPSW(passwordToVerify, u.getSavedPassword());
     }
 

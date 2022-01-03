@@ -16,10 +16,7 @@ import javax.naming.ConfigurationException;
 import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
@@ -46,9 +43,14 @@ public class InputHandler implements Runnable {
      */
     public void run() {
         Scanner in = new Scanner(System.in);
+        String raw_request;
 
         while(!stop) {
-            String raw_request = in.nextLine();
+            raw_request = "";
+            try {
+                raw_request = in.nextLine();
+            } catch(NoSuchElementException ignored) { }  // per evitare errore se si preme CTRL+C su Windows
+
             if(raw_request.equals("")) continue; // se l'utente ha premuto invio continuo
             String[] temp = raw_request.split(" ");
 
@@ -333,10 +335,13 @@ public class InputHandler implements Runnable {
     }
 
     private void stopServer(Scanner in) {
-        String check;
+        String check = "";
 
         System.out.print("> Sei sicuro di voler terminare il server? (S/N): ");
-        check = in.nextLine();
+        try {
+            check = in.nextLine();
+        } catch(NoSuchElementException ignored) { }  // per evitare errore se si preme CTRL+C su Windows
+
         if(check.equalsIgnoreCase("S")) {
             System.out.println("> Server in arresto...");
             stop = true;
