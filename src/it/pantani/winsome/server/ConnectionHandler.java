@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static it.pantani.winsome.server.utils.RandomGenerator.generateRandomValue;
 import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
 /**
@@ -733,7 +734,7 @@ public class ConnectionHandler implements Runnable {
         ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
 
         long calcTimeStart = System.currentTimeMillis();
-        double conversionRate = Utils.generateRandomValue();
+        double conversionRate = generateRandomValue();
         System.out.println("[CH #" + chCode + "]> Rateo di conversione (" + conversionRate + ") ottenuto in " + (System.currentTimeMillis() - calcTimeStart) + "ms, trasmissione.");
         double money = user_wallet.getBalance();
         double moneyInBitcoin = money * conversionRate;

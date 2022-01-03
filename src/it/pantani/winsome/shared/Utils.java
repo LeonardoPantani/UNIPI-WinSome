@@ -8,10 +8,7 @@ package it.pantani.winsome.shared;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -21,37 +18,12 @@ import java.util.Locale;
 /**
  * Classe utilizzata sia da client che server perché contiene utili funzioni che permettono il funzionamento di WinSome.
  */
-public class Utils {
+public abstract class Utils {
     public static final String SOCIAL_REGISTRATION_SUCCESS = "registration ok";
     public static final String SOCIAL_REGISTRATION_FAILED = "registration failed";
 
     public static final String SOCIAL_LOGIN_SUCCESS = "login ok";
-
     public static final String SOCIAL_LOGOUT_SUCCESS = "logout ok";
-
-    // indirizzo utilizzato per il recupero di valori casuali
-    public static final String web_address = "https://www.random.org/decimal-fractions/?num=1&dec=20&col=1&format=plain&rnd=new";
-
-    /**
-     * Contatta il servizio esterno per ottenere un valore casuale e lo restituisce come numero double.
-     * @return il valore double ottenuto da remoto
-     */
-    public static double generateRandomValue() {
-        try {
-            URL url = new URL(web_address);
-            URLConnection url_conn = url.openConnection();
-
-            // apro uno stream
-            BufferedReader buf_read = new BufferedReader(new InputStreamReader(url_conn.getInputStream()));
-            String body = buf_read.readLine();
-            buf_read.close();
-
-            return Double.parseDouble(body);
-        } catch(IOException | NumberFormatException e) {
-            System.err.println("[!] Errore durante generazione di valore casuale. Motivo: " + e.getLocalizedMessage());
-        }
-        return 0;
-    }
 
     /**
      * "Hack" che permette di inviare, dato uno stream, una stringa anche se contiene nuove righe.

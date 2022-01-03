@@ -12,7 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
  * Classe che si occupa di fare l'hash di una password utilizzando la libreria esterna BCrypt.
  * Quest'ultima permette di hashare una stringa e di aggiungerci un salt senza doverlo gestire esplicitamente.
  */
-public class PasswordManager {
+public abstract class PasswordManager {
     /**
      * Effettua l'hashing di una stringa
      * @param input la stringa di cui fare l'hash

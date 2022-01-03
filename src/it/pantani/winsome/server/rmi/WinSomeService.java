@@ -62,7 +62,7 @@ public class WinSomeService implements WinSomeServiceInterface {
      * @param username l'username di cui verificare la disponibilità
      * @return vero se l'username non è ancora registrato, falso altrimenti
      */
-    private boolean checkUsernameAvailability(String username) {
+    private static boolean checkUsernameAvailability(String username) {
         SocialManager s = ServerMain.social;
         return !s.findUser(username);
     }
