@@ -22,7 +22,7 @@ import java.util.ArrayList;
  */
 public class WinSomeService implements WinSomeServiceInterface {
     /**
-     * Registra un utente sul social WinSome.
+     * Registra un utente sul social WinSome e stampa un messaggio di log contenente l'esito della richiesta.
      * @param username il nome dell'utente da registrare
      * @param password la password (in chiaro) dell'utente da registrare
      * @param tags_list la lista di tags che contengono le categorie che interessano all'utente che si sta registrando
@@ -30,11 +30,17 @@ public class WinSomeService implements WinSomeServiceInterface {
      */
     public String register(String username, String password, ArrayList<String> tags_list) throws RemoteException {
         username = username.toLowerCase(); // username viene convertito tutto in minuscolo
-        if(!checkUsernameAvailability(username)) return Utils.SOCIAL_REGISTRATION_FAILED; // se l'username esiste già
+        System.out.print("[WSS]> Registrazione dell'utente '" + username + "' " + tags_list + "...");
+
+        if(!checkUsernameAvailability(username)) {
+            System.out.println(" fallita");
+            return Utils.SOCIAL_REGISTRATION_FAILED; // se l'username esiste già
+        }
 
         SocialManager s = ServerMain.social;
         WinSomeUser newUser = new WinSomeUser(username, PasswordManager.hashPassword(password), tags_list);
         s.addUser(newUser);
+        System.out.println(" successo");
         return Utils.SOCIAL_REGISTRATION_SUCCESS;
     }
 

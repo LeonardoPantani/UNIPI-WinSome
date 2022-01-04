@@ -180,8 +180,10 @@ public class ClientMain {
                             String server_response = stub.register(arguments[0], arguments[1], tags_list);
                             if(server_response.equals(Utils.SOCIAL_REGISTRATION_SUCCESS)) {
                                 System.out.println("> Registrazione dell'utente '" + arguments[0] + "' completata.");
+                            } else if(server_response.equals(Utils.SOCIAL_REGISTRATION_FAILED)) {
+                                System.out.println("> Non e' stato possibile registrare l'utente '" + arguments[0] + "' perché quell'username e' gia' in uso.");
                             } else {
-                                System.out.println("> Non è stato possibile registrare l'utente '" + arguments[0] + "'.");
+                                System.out.println("> Non e' stato possibile registrare l'utente '" + arguments[0] + "'.");
                             }
                             break;
                         }
@@ -190,7 +192,7 @@ public class ClientMain {
                                 System.err.println("[!] Comando errato, usa: login <username> <password>");
                                 break;
                             }
-                            out.println(raw_request);
+                            Utils.send(out, raw_request);
                             String response = Utils.receive(in);
                             if (response.equalsIgnoreCase(Utils.SOCIAL_LOGIN_SUCCESS)) { // se il login ha successo registro il client per il callback
                                 username = arguments[0];
@@ -220,7 +222,7 @@ public class ClientMain {
                             break;
                         }
                         case "logout": {
-                            out.println(raw_request);
+                            Utils.send(out, raw_request);
                             String response = Utils.receive(in);
                             // SE sono connesso ad un server & SE il logout ha successo ALLORA rimuovo il client dalla lista del callback
                             if (server != null && response.equals(Utils.SOCIAL_LOGOUT_SUCCESS)) {
@@ -266,12 +268,12 @@ public class ClientMain {
                         case "comment":
                         case "delete":
                         case "post": {
-                            out.println(raw_request);
+                            Utils.send(out, raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
                             break;
                         }
                         default: {
-                            out.println(raw_request);
+                            Utils.send(out, raw_request);
                             System.out.println("[Server]> " + Utils.receive(in));
                         }
                     }

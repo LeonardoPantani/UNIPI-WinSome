@@ -26,7 +26,7 @@ public abstract class Utils {
     public static final String SOCIAL_LOGOUT_SUCCESS = "logout ok";
 
     /**
-     * "Hack" che permette di inviare, dato uno stream, una stringa anche se contiene nuove righe.
+     * Permette di inviare una stringa su uno stream.
      * @param out lo stream su cui inviare la stringa
      * @param send la stringa da inviare
      */
@@ -38,17 +38,17 @@ public abstract class Utils {
     }
 
     /**
-     * Permette di ricevere una stringa anche se contiene varie righe.
+     * Permette di ricevere una stringa da uno stream.
      * @param in lo stream da cui ricevere la stringa
      * @return la stringa ricevuta
      * @throws IOException se la lunghezza della stringa inviata non è valida
      */
     public static String receive(BufferedReader in) throws IOException {
         StringBuilder everything = new StringBuilder();
+
         // ottengo la lunghezza della stringa che riceverò
         String dato = in.readLine();
-        if(dato == null) throw new IOException(); // per linux
-
+        if(dato == null) throw new IOException(); // per unix
         int l;
         try {
             l = Integer.parseInt(dato);
@@ -56,6 +56,7 @@ public abstract class Utils {
             return dato;
         }
 
+        // leggo il dato in in base al numero di bytes ricevuto come primo messaggio dalla in.readLine()
         int i = 0;
         while(i < l) {
             everything.append((char)in.read());

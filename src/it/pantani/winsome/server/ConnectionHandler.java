@@ -79,20 +79,27 @@ public class ConnectionHandler implements Runnable {
         while(true) {
             try {
                 // leggo la richiesta del client
-                raw_request = in.readLine();
+                raw_request = Utils.receive(in);
                 if(raw_request != null) { // se è valida allora mi preparo a gestirla
-                    System.out.println("[" + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + "]> " + raw_request);
-
                     // divido la richiesta in operazione e argomenti
                     String[] temp = raw_request.split(" ");
                     String request = temp[0];
                     String[] arguments = new String[temp.length-1];
                     System.arraycopy(temp, 1, arguments, 0, temp.length - 1);
 
+                    // stampo la richiesta in console (se è una richiesta di login non mostro la password)
+                    System.out.print("[" + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + "]> ");
+                    if(arguments.length == 2 && request.equals("login")) {
+                        System.out.println(request + " " + arguments[0] + " ******");
+                    } else {
+                        System.out.println(raw_request);
+                    }
+
+                    // gestisco la richiesta in maniera appropriata
                     switch (request) {
                         case "login": {
                             if (arguments.length != 2) {
-                                out.println("comando errato, usa: login <username> <password>");
+                                Utils.send(out, "comando errato, usa: login <username> <password>");
                                 break;
                             }
                             login(arguments[0], arguments[1]);
@@ -100,7 +107,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "logout": {
                             if(clientSession == null) {
-                                out.println("non hai effettuato il login");
+                                Utils.send(out, "non hai effettuato il login");
                                 break;
                             }
                             logout(clientSession.getUsername());
@@ -116,7 +123,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "follow": {
                             if (arguments.length != 1) {
-                                out.println("comando errato, usa: follow <username>");
+                                Utils.send(out, "comando errato, usa: follow <username>");
                                 break;
                             }
                             follow(arguments[0]);
@@ -124,7 +131,7 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "unfollow": {
                             if (arguments.length != 1) {
-                                out.println("comando errato, usa: unfollow <username>");
+                                Utils.send(out, "comando errato, usa: unfollow <username>");
                                 break;
                             }
                             unfollow(arguments[0]);
@@ -133,7 +140,7 @@ public class ConnectionHandler implements Runnable {
                         case "post": {
                             // se il numero di parentesi non è pari allora restituisco un errore
                             if(raw_request.chars().filter(ch -> ch == '"').count() % 2 != 0) {
-                                out.println("comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
+                                Utils.send(out, "comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
                                 break;
                             }
 
@@ -147,13 +154,13 @@ public class ConnectionHandler implements Runnable {
 
                             // se i parametri forniti non sono nè 1 nè 2 allora restituisco errore
                             if(text.size() != 1 && text.size() != 2) {
-                                out.println("comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
+                                Utils.send(out, "comando errato, usa: post \"<titolo>\" \"<contenuto>\"");
                                 break;
                             }
 
                             // il titolo del post non deve essere vuoto
                             if(text.get(0).trim().length() == 0) {
-                                out.println("comando errato, il titolo del post non puo' essere vuoto");
+                                Utils.send(out, "comando errato, il titolo del post non puo' essere vuoto");
                                 break;
                             }
 
@@ -167,25 +174,25 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "rewin": {
                             if(arguments.length != 1) {
-                                out.println("Comando errato, usa: rewin <id post>");
+                                Utils.send(out, "comando errato, usa: rewin <id post>");
                                 break;
                             }
                             try {
                                 rewinPost(Integer.parseInt(arguments[0]));
                             } catch(NumberFormatException e) {
-                                out.println("Comando errato, usa: rewin <id post>");
+                                Utils.send(out, "comando errato, usa: rewin <id post>");
                             }
                             break;
                         }
                         case "rate": {
                             if(arguments.length != 2) {
-                                out.println("Comando errato, usa: rate <id post> <+1/-1>");
+                                Utils.send(out, "comando errato, usa: rate <id post> <+1/-1>");
                                 break;
                             }
                             try {
                                 rate(Integer.parseInt(arguments[0]), Integer.parseInt(arguments[1]));
                             } catch(NumberFormatException e) {
-                                out.println("Comando errato, usa: rate <id post> <+1/-1>");
+                                Utils.send(out, "comando errato, usa: rate <id post> <+1/-1>");
                             }
                             break;
                         }
@@ -195,19 +202,19 @@ public class ConnectionHandler implements Runnable {
                         }
                         case "showpost": {
                             if(arguments.length != 1) {
-                                out.println("Comando errato, usa: showpost <id post>");
+                                Utils.send(out, "comando errato, usa: showpost <id post>");
                                 break;
                             }
                             try {
                                 showpost(Integer.parseInt(arguments[0]));
                             } catch(NumberFormatException e) {
-                                out.println("Comando errato, usa: showpost <id post>");
+                                Utils.send(out, "comando errato, usa: showpost <id post>");
                             }
                             break;
                         }
                         case "comment": {
                             if(arguments.length < 2) {
-                                out.println("Comando errato, usa: comment <id post> <testo>");
+                                Utils.send(out, "comando errato, usa: comment <id post> <testo>");
                                 break;
                             }
                             // ottenimento commento
@@ -220,19 +227,19 @@ public class ConnectionHandler implements Runnable {
                             try {
                                 addComment(Integer.parseInt(arguments[0]), comment.toString());
                             } catch(NumberFormatException e) {
-                                out.println("Comando errato, usa: comment <id post> <testo>");
+                                Utils.send(out, "comando errato, usa: comment <id post> <testo>");
                             }
                             break;
                         }
                         case "delete": {
                             if(arguments.length != 1) {
-                                out.println("Comando errato, usa: delete <id post>");
+                                Utils.send(out, "comando errato, usa: delete <id post>");
                                 break;
                             }
                             try {
                                 deletePost(Integer.parseInt(arguments[0]));
                             } catch(NumberFormatException e) {
-                                out.println("Comando errato, usa: delete <id post>");
+                                Utils.send(out, "comando errato, usa: delete <id post>");
                             }
                             break;
                         }
@@ -267,7 +274,7 @@ public class ConnectionHandler implements Runnable {
      * Eseguito se il server non conosce come gestire la richiesta del client.
      */
     private void invalidcmd() {
-        out.println("comando non riconosciuto");
+        Utils.send(out, "comando non riconosciuto");
     }
 
     /**
@@ -278,7 +285,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void login(String username, String password) {
         if(clientSession != null) {
-            out.println("sei gia' collegato con l'account '" + clientSession.getUsername() + "'");
+            Utils.send(out, "sei gia' collegato con l'account '" + clientSession.getUsername() + "'");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -290,9 +297,9 @@ public class ConnectionHandler implements Runnable {
                 WinSomeSession wss = ServerMain.sessionsList.get(username);
                 if(wss != null) {
                     if(wss.getSessionSocket() == clientSocket) {
-                        out.println("hai gia' fatto il login in data " + getFormattedDate(wss.getTimestamp()));
+                        Utils.send(out, "hai gia' fatto il login in data " + getFormattedDate(wss.getTimestamp()));
                     } else {
-                        out.println("questo utente e' collegato e ha fatto il login in data " + getFormattedDate(wss.getTimestamp()));
+                        Utils.send(out, "questo utente e' collegato e ha fatto il login in data " + getFormattedDate(wss.getTimestamp()));
                     }
                     return;
                 }
@@ -300,12 +307,12 @@ public class ConnectionHandler implements Runnable {
                 ServerMain.sessionsList.put(username, wss);
                 clientSession = wss;
 
-                out.println(Utils.SOCIAL_LOGIN_SUCCESS);
+                Utils.send(out, Utils.SOCIAL_LOGIN_SUCCESS);
             } else {
-                out.println("password errata");
+                Utils.send(out, "password errata");
             }
         } else {
-            out.println("utente non trovato");
+            Utils.send(out, "utente non trovato");
         }
     }
 
@@ -325,15 +332,15 @@ public class ConnectionHandler implements Runnable {
                 if (wss.getSessionSocket() == clientSocket) { // deve corrispondere il socket della sessione
                     ServerMain.sessionsList.remove(username);
                     clientSession = null;
-                    out.println(Utils.SOCIAL_LOGOUT_SUCCESS);
+                    Utils.send(out, Utils.SOCIAL_LOGOUT_SUCCESS);
                 } else {
-                    out.println("non hai effettuato il login"); // se un altro client prova a fare logout
+                    Utils.send(out, "non hai effettuato il login"); // se un altro client prova a fare logout
                 }
             } else {
-                out.println("non hai effettuato il login");
+                Utils.send(out, "non hai effettuato il login");
             }
         } else {
-            out.println("utente non trovato");
+            Utils.send(out, "utente non trovato");
         }
     }
 
@@ -343,7 +350,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void listusers() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -351,7 +358,7 @@ public class ConnectionHandler implements Runnable {
 
         Set<String> current_user_tags = s.getUser(current_user).getTags_list();
         if(current_user_tags.size() == 0) {
-            out.println("non hai tag impostati, quindi non ci sono utenti con tag in comune con te");
+            Utils.send(out, "non hai tag impostati, quindi non ci sono utenti con tag in comune con te");
             return;
         }
 
@@ -359,7 +366,7 @@ public class ConnectionHandler implements Runnable {
         ArrayList<WinSomeUser> usersWithTag = s.getUsersWithSimilarTags(current_user_tags);
         usersWithTag.removeIf(u -> Objects.equals(u.getUsername(), current_user));
         if(usersWithTag.size() == 0) { // se dopo la rimozione ci sono 0 utenti allora restituisco questo errore
-            out.println("nessun utente ha almeno un tag in comune con te :(");
+            Utils.send(out, "nessun utente ha almeno un tag in comune con te :(");
             return;
         }
         StringBuilder output = new StringBuilder();
@@ -383,14 +390,14 @@ public class ConnectionHandler implements Runnable {
      */
     private void listfollowing() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
 
         ArrayList<String> following = s.getFollowing(clientSession.getUsername());
         if(following.size() == 0) {
-            out.println("non segui alcun utente");
+            Utils.send(out, "non segui alcun utente");
             return;
         }
 
@@ -409,7 +416,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void follow(String username) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -418,18 +425,18 @@ public class ConnectionHandler implements Runnable {
 
         try {
             s.followUser(current_user, username);
-            out.println("ora segui '" + username + "'");
+            Utils.send(out, "ora segui '" + username + "'");
             try {
                 WinSomeCallback.notifyFollowerUpdate(username, "+" + current_user);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         } catch(UserNotFoundException e) {
-            out.println("quell'utente non esiste");
+            Utils.send(out, "quell'utente non esiste");
         } catch(SameUserException e) {
-            out.println("non puoi seguire te stesso");
+            Utils.send(out, "non puoi seguire te stesso");
         } catch(InvalidOperationException e) {
-            out.println("segui gia' quell'utente");
+            Utils.send(out, "segui gia' quell'utente");
         }
     }
 
@@ -440,7 +447,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void unfollow(String username) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -449,18 +456,18 @@ public class ConnectionHandler implements Runnable {
 
         try {
             s.unfollowUser(current_user, username);
-            out.println("non segui piu' '" + username + "'");
+            Utils.send(out, "non segui piu' '" + username + "'");
             try {
                 WinSomeCallback.notifyFollowerUpdate(username, "-" + current_user);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         } catch(UserNotFoundException e) {
-            out.println("quell'utente non esiste");
+            Utils.send(out, "quell'utente non esiste");
         } catch(SameUserException e) {
-            out.println("non puoi smettere di seguire te stesso");
+            Utils.send(out, "non puoi smettere di seguire te stesso");
         } catch(InvalidOperationException e) {
-            out.println("non segui quell'utente");
+            Utils.send(out, "non segui quell'utente");
         }
     }
 
@@ -472,7 +479,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void post(ArrayList<String> arguments_list) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -485,11 +492,11 @@ public class ConnectionHandler implements Runnable {
 
         try {
             int new_post_id = s.createPost(current_user, post_title, post_content);
-            out.println("post pubblicato (#" + new_post_id + ")");
+            Utils.send(out, "post pubblicato (#" + new_post_id + ")");
         } catch(InvalidOperationException e) {
-            out.println("titolo o contenuto del post troppo lungo");
+            Utils.send(out, "titolo o contenuto del post troppo lungo");
         } catch(UserNotFoundException e) {
-            out.println("utente non trovato");
+            Utils.send(out, "utente non trovato");
         }
     }
 
@@ -499,7 +506,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void blog() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -507,7 +514,7 @@ public class ConnectionHandler implements Runnable {
 
         ArrayList<WinSomePost> user_posts = s.getBlog(current_user);
         if(user_posts.size() == 0) {
-            out.println("il tuo blog e' vuoto, pubblica qualcosa!");
+            Utils.send(out, "il tuo blog e' vuoto, pubblica qualcosa!");
             return;
         }
         StringBuilder ret = new StringBuilder("BLOG DI " + current_user + ":\n");
@@ -524,7 +531,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void rewinPost(int post_id) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -532,18 +539,18 @@ public class ConnectionHandler implements Runnable {
 
         try {
             s.rewinPost(current_user, post_id);
-            out.println("rewin del post #" + post_id + " effettuato!");
+            Utils.send(out, "rewin del post #" + post_id + " effettuato!");
         } catch(InvalidOperationException e) {
-            out.println("hai gia' fatto il rewin di questo post");
+            Utils.send(out, "hai gia' fatto il rewin di questo post");
         } catch(NotInFeedException e) {
-            out.println("questo post non e' nel tuo feed");
+            Utils.send(out, "questo post non e' nel tuo feed");
         } catch(PostNotFoundException e) {
-            out.println("impossibile trovare post con id #" + post_id);
+            Utils.send(out, "impossibile trovare post con id #" + post_id);
         } catch(SameUserException e) {
-            out.println("non puoi fare il rewin su un tuo post");
+            Utils.send(out, "non puoi fare il rewin su un tuo post");
         } catch(UserNotFoundException e) {
             e.printStackTrace();
-            out.println("errore interno");
+            Utils.send(out, "errore interno");
         }
     }
 
@@ -556,7 +563,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void rate(int post_id, int vote) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -565,23 +572,23 @@ public class ConnectionHandler implements Runnable {
         try {
             s.ratePost(current_user, post_id, vote);
             if(vote == 1) {
-                out.println("hai messo +1 al post #" + post_id);
+                Utils.send(out, "hai messo +1 al post #" + post_id);
             } else {
-                out.println("hai messo -1 al post #" + post_id);
+                Utils.send(out, "hai messo -1 al post #" + post_id);
             }
         } catch(InvalidVoteException e) {
-            out.println("voto non valido");
+            Utils.send(out, "voto non valido");
         } catch(PostNotFoundException e) {
-            out.println("impossibile trovare post con id #" + post_id);
+            Utils.send(out, "impossibile trovare post con id #" + post_id);
         } catch(InvalidOperationException e) {
-            out.println("hai gia' votato questo post");
+            Utils.send(out, "hai gia' votato questo post");
         } catch(SameUserException e) {
-            out.println("non puoi votare un tuo stesso post");
+            Utils.send(out, "non puoi votare un tuo stesso post");
         } catch(NotInFeedException e) {
-            out.println("questo post non e' nel tuo feed");
+            Utils.send(out, "questo post non e' nel tuo feed");
         } catch(UserNotFoundException e) {
             e.printStackTrace();
-            out.println("errore interno");
+            Utils.send(out, "errore interno");
         }
     }
 
@@ -591,7 +598,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void showfeed() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -599,7 +606,7 @@ public class ConnectionHandler implements Runnable {
 
         ArrayList<WinSomePost> feed = s.getFeed(current_user);
         if(feed.size() == 0) {
-            out.println("feed vuoto");
+            Utils.send(out, "feed vuoto");
             return;
         }
 
@@ -617,14 +624,14 @@ public class ConnectionHandler implements Runnable {
      */
     private void showpost(int post_id) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
         WinSomePost p = s.getPost(post_id);
 
         if(p == null) {
-            out.println("impossibile trovare post con id #" + post_id);
+            Utils.send(out, "impossibile trovare post con id #" + post_id);
             return;
         }
         Utils.send(out, s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
@@ -638,7 +645,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void addComment(int post_id, String text) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -646,13 +653,13 @@ public class ConnectionHandler implements Runnable {
 
         try {
             s.commentPost(current_user, post_id, text);
-            out.println("commento pubblicato");
+            Utils.send(out, "commento pubblicato");
         } catch(PostNotFoundException e) {
-            out.println("impossibile trovare post con id #" + post_id);
+            Utils.send(out, "impossibile trovare post con id #" + post_id);
         } catch(SameUserException e) {
-            out.println("non puoi commentare sotto un tuo stesso post");
+            Utils.send(out, "non puoi commentare sotto un tuo stesso post");
         } catch(NotInFeedException e) {
-            out.println("questo post non e' nel tuo feed");
+            Utils.send(out, "questo post non e' nel tuo feed");
         }
     }
 
@@ -663,7 +670,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void deletePost(int post_id) {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -671,11 +678,11 @@ public class ConnectionHandler implements Runnable {
 
         try {
             s.deletePost(current_user, post_id);
-            out.println("post #" + post_id + " eliminato");
+            Utils.send(out, "post #" + post_id + " eliminato");
         } catch(PostNotFoundException e) {
-            out.println("impossibile trovare post con id #" + post_id);
+            Utils.send(out, "impossibile trovare post con id #" + post_id);
         } catch(InvalidOperationException e) {
-            out.println("non puoi eliminare un post che non e' tuo");
+            Utils.send(out, "non puoi eliminare un post che non e' tuo");
         }
     }
 
@@ -686,7 +693,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void getWallet() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
@@ -722,7 +729,7 @@ public class ConnectionHandler implements Runnable {
      */
     private void getWalletInBitcoin() {
         if(isNotLogged()) {
-            out.println("non hai effettuato il login");
+            Utils.send(out, "non hai effettuato il login");
             return;
         }
         SocialManager s = ServerMain.social;
