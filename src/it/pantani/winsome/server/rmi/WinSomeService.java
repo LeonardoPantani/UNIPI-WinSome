@@ -32,8 +32,13 @@ public class WinSomeService implements WinSomeServiceInterface {
         username = username.toLowerCase(); // username viene convertito tutto in minuscolo
         System.out.print("[WSS]> Registrazione dell'utente '" + username + "' " + tags_list + "...");
 
+        if(tags_list.size() > 5) {
+            System.out.println(" fallita (troppi tags)");
+            return Utils.SOCIAL_REGISTRATION_FAILED; // se ci sono troppi tag
+        }
+
         if(!checkUsernameAvailability(username)) {
-            System.out.println(" fallita");
+            System.out.println(" fallita (username già esistente)");
             return Utils.SOCIAL_REGISTRATION_FAILED; // se l'username esiste già
         }
 

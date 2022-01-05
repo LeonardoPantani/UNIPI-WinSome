@@ -26,13 +26,15 @@ import static it.pantani.winsome.shared.Utils.getFormattedDate;
  */
 public class InputHandler implements Runnable {
     private final ConfigManager config;
+    private final SocialManager social;
 
     private volatile boolean stop;
 
     String default_reason_transaction;
 
-    public InputHandler(ConfigManager config) throws ConfigurationException {
+    public InputHandler(ConfigManager config, SocialManager social) throws ConfigurationException {
         this.config = config;
+        this.social = social;
         stop = false;
 
         validateAndSavePreferences();
@@ -226,8 +228,7 @@ public class InputHandler implements Runnable {
     }
 
     private void listUsers() {
-        SocialManager s = ServerMain.social;
-        int numUsers = s.getUserCount();
+        int numUsers = social.getUserCount();
         if(numUsers == 0) {
             System.out.println("> Non ci sono utenti registrati.");
             return;
@@ -235,11 +236,11 @@ public class InputHandler implements Runnable {
         Set<String> user_tags_list;
 
         System.out.println("> LISTA UTENTI REGISTRATI (" + numUsers + "):");
-        for(WinSomeUser u : s.getUserList().values()) {
+        for(WinSomeUser u : social.getUserList().values()) {
             System.out.print("- " + u.getUsername());
             user_tags_list = u.getTags_list();
 
-            System.out.print(" | Bilancio: " + s.getFormattedCurrency(s.getWalletByUsername(u.getUsername()).getBalance()));
+            System.out.print(" | Bilancio: " + social.getFormattedCurrency(social.getWalletByUsername(u.getUsername()).getBalance()));
             System.out.print(" | Data reg.: " + Utils.getFormattedDate(u.getCreationDate()));
             System.out.print(" | Tags: ");
             if(user_tags_list.size() != 0) {
@@ -251,12 +252,11 @@ public class InputHandler implements Runnable {
     }
 
     private void listFollowers(String user) {
-        SocialManager s = ServerMain.social;
-        if(!s.findUser(user)) {
+        if(!social.findUser(user)) {
             System.out.println("[!] Utente '" + user + "' non valido.");
             return;
         }
-        ArrayList<String> user_followers_list = s.getFollowers(user);
+        ArrayList<String> user_followers_list = social.getFollowers(user);
         if(user_followers_list == null) {
             System.out.println("> '" + user + "' non e' seguito da alcun utente.");
             return;
@@ -269,12 +269,11 @@ public class InputHandler implements Runnable {
     }
 
     private void listFollowing(String user) {
-        SocialManager s = ServerMain.social;
-        if(!s.findUser(user)) {
+        if(!social.findUser(user)) {
             System.out.println("[!] Utente '" + user + "' non valido.");
             return;
         }
-        ArrayList<String> user_following_list = s.getFollowing(user);
+        ArrayList<String> user_following_list = social.getFollowing(user);
         if(user_following_list == null) {
             System.out.println("> '" + user + "' non segue alcun utente.");
             return;
@@ -305,33 +304,27 @@ public class InputHandler implements Runnable {
     }
 
     private void addFollowing(String user, String new_following) {
-        SocialManager s = ServerMain.social;
-
-        s.addFollower(new_following, user);
-        s.addFollowing(user, new_following);
+        social.addFollower(new_following, user);
+        social.addFollowing(user, new_following);
         System.out.println("> Ora l'utente '" + user + "' segue '" + new_following + "'");
     }
 
     private void removeFollowing(String user, String to_remove_following) {
-        SocialManager s = ServerMain.social;
-
-        s.removeFollower(to_remove_following, user);
-        s.removeFollowing(user, to_remove_following);
+        social.removeFollower(to_remove_following, user);
+        social.removeFollowing(user, to_remove_following);
         System.out.println("> Ora l'utente '" + user + "' non segue piu' '" + to_remove_following + "'");
     }
 
     private void changeBalance(String user, double edit) {
-        SocialManager s = ServerMain.social;
-        if(s.getUser(user) == null) {
+        if(social.getUser(user) == null) {
             System.err.println("[!] L'utente '" + user + "' non esiste");
             return;
         }
 
-        ConfigManager c = ServerMain.config;
-        String reason = c.getPreference("default_reason_transaction");
+        String reason = config.getPreference("default_reason_transaction");
         if(reason == null) reason = "SYSTEM";
-        double newBalance = s.getWalletByUsername(user).changeBalance(edit, reason);
-        System.out.println("> L'utente '" + user + "' ha ora un bilancio di " + s.getFormattedCurrency(newBalance));
+        double newBalance = social.getWalletByUsername(user).changeBalance(edit, reason);
+        System.out.println("> L'utente '" + user + "' ha ora un bilancio di " + social.getFormattedCurrency(newBalance));
     }
 
     private void stopServer(Scanner in) {
@@ -353,7 +346,6 @@ public class InputHandler implements Runnable {
     }
 
     private void help() {
-        ConfigManager c = ServerMain.config;
         System.out.println("> LISTA COMANDI:");
         System.out.println("kickclient <porta>                   - Chiude forzatamente la connessione con un client");
         System.out.println("kickallclients                       - Chiude forzatamente la connessione a tutti i client");
@@ -365,7 +357,7 @@ public class InputHandler implements Runnable {
         System.out.println("removefollower <utente> <follower>   - Rimuove a <utente> il follower <follower>");
         System.out.println("addfollowing <utente> <nuovo>        - Fa seguire a <utente> l'utente <nuovo>");
         System.out.println("removefollowing <utente> <following> - Fa smettere a <utente> di seguire l'utente <following>");
-        System.out.println("changebal <utente> <cambiamento>     - Aggiunge una transazione di <cambiamento> " + c.getPreference("currency_name_plural") + " a <utente>");
+        System.out.println("changebal <utente> <cambiamento>     - Aggiunge una transazione di <cambiamento> " + config.getPreference("currency_name_plural") + " a <utente>");
         System.out.println("stopserver                           - Termina il server");
         System.out.println("help                                 - Mostra questa schermata");
     }

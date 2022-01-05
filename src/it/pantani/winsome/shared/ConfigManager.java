@@ -46,7 +46,7 @@ public class ConfigManager {
                 prop.setProperty("post_max_content_length", "500"); // lunghezza massima del corpo del post
                 prop.setProperty("currency_name_singular", "wincoin"); // nome della valuta singolare
                 prop.setProperty("currency_name_plural", "wincoins"); // nome della valuta plurale
-                prop.setProperty("currency_decimal_places", "2"); // cifre decimali
+                prop.setProperty("currency_decimal_places", "4"); // cifre decimali
                 prop.setProperty("multicast_address", "224.0.0.1"); // indirizzo multicast
                 prop.setProperty("multicast_port", "6788"); // porta multicast
                 prop.setProperty("autosave_interval", "60000"); // intervallo di salvataggio automatico dei dati di persistenza

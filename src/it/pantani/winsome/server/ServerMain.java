@@ -104,7 +104,7 @@ public class ServerMain {
         // gestisce tutta la parte di comandi inviati dall'amministratore del server per vederne lo stato
         InputHandler ih;
         try {
-            ih = new InputHandler(config);
+            ih = new InputHandler(config, social);
         } catch(ConfigurationException e) {
             System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
             return;
@@ -172,7 +172,7 @@ public class ServerMain {
             try {
                 Socket a = serverSocket.accept();
                 socketsList.add(a);
-                pool.submit(new ConnectionHandler(a, i));
+                pool.submit(new ConnectionHandler(a, i, config, social));
                 i++;
             } catch(SocketException e) { // si verifica solo se il socket viene chiuso forzatamente da un altro thread o entità esterna (nel nostro caso il comando "stopserver" nell'InputHandler)
                 break;

@@ -51,7 +51,7 @@ public class ClientMain {
     public static String multicast_server_address;
     public static int multicast_server_port;
 
-    public static ArrayList<String> listaFollower = new ArrayList<>();
+    public static ArrayList<String> followersList = new ArrayList<>();
 
     public static void main(String[] args) {
         // leggo le preferenze dal file di configurazione
@@ -188,10 +188,6 @@ public class ClientMain {
                             break;
                         }
                         case "login": {
-                            if (arguments.length != 2) {
-                                System.err.println("[!] Comando errato, usa: login <username> <password>");
-                                break;
-                            }
                             Utils.send(out, raw_request);
                             String response = Utils.receive(in);
                             if (response.equalsIgnoreCase(Utils.SOCIAL_LOGIN_SUCCESS)) { // se il login ha successo registro il client per il callback
@@ -214,7 +210,7 @@ public class ClientMain {
                                 }
 
                                 // al login ricevo la lista dei follower, per i successivi aggiornamenti si farà uso dell'RMI
-                                listaFollower = stub.initializeFollowerList(username, arguments[1]);
+                                followersList = stub.initializeFollowerList(username, arguments[1]);
                                 System.out.println("> Login dell'utente '" + username + "' effettuato.");
                             } else {
                                 System.out.println("[Server]> " + response);
@@ -241,13 +237,13 @@ public class ClientMain {
                                 System.out.println("[!] Non hai effettuato il login");
                                 break;
                             }
-                            if (listaFollower.size() == 0) {
+                            if (followersList.size() == 0) {
                                 System.out.println("> Nessun utente ti segue.");
                                 break;
                             }
 
-                            System.out.println("> LISTA FOLLOWERS (" + listaFollower.size() + "):");
-                            for (String u : listaFollower) {
+                            System.out.println("> LISTA FOLLOWERS (" + followersList.size() + "):");
+                            for (String u : followersList) {
                                 System.out.println("* " + u);
                             }
                             System.out.print("\n");

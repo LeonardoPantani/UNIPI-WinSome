@@ -30,11 +30,11 @@ public class NotifyEvent extends RemoteObject implements NotifyEventInterface {
         String follower;
         if(update.startsWith("+")) {
             follower = update.substring(1);
-            ClientMain.listaFollower.add(follower);
+            ClientMain.followersList.add(follower);
             //System.out.println("[RMI]> Ha iniziato a seguirti: " + follower);
         } else if(update.startsWith("-")) {
             follower = update.substring(1);
-            ClientMain.listaFollower.remove(follower);
+            ClientMain.followersList.remove(follower);
             //System.out.println("[RMI]> Non ti segue piu': " + follower);
         } else {
             System.err.println("[!] Ricezione notifica non valida.");

@@ -38,6 +38,9 @@ import static it.pantani.winsome.shared.Utils.getFormattedDate;
  * chCode -> codice del ConnectionHandler, usato nelle stampe di alcuni messaggi
  */
 public class ConnectionHandler implements Runnable {
+    private final ConfigManager config;
+    private final SocialManager social;
+    
     private final Socket clientSocket;
     private WinSomeSession clientSession;
     private final int chCode;
@@ -50,10 +53,13 @@ public class ConnectionHandler implements Runnable {
      * @param clientSocket socket del client a cui è stata accetta la connessione nel main
      * @param chCode codice assegnato nel main a questo ConnectionHandler
      */
-    public ConnectionHandler(Socket clientSocket, int chCode) {
+    public ConnectionHandler(Socket clientSocket, int chCode, ConfigManager config, SocialManager social) {
         this.clientSocket = clientSocket;
         this.clientSession = null;
         this.chCode = chCode;
+
+        this.config = config;
+        this.social = social;
     }
 
     /**
@@ -288,12 +294,12 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "sei gia' collegato con l'account '" + clientSession.getUsername() + "'");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         username = username.toLowerCase();
-        WinSomeUser u = s.getUser(username);
+        WinSomeUser u = social.getUser(username);
 
         if(u != null) {
-            if(s.checkUserPassword(u, password)) {
+            if(social.checkUserPassword(u, password)) {
                 WinSomeSession wss = ServerMain.sessionsList.get(username);
                 if(wss != null) {
                     if(wss.getSessionSocket() == clientSocket) {
@@ -322,9 +328,8 @@ public class ConnectionHandler implements Runnable {
      * @param username l'username di cui fare il logout
      */
     private void logout(String username) {
-        SocialManager s = ServerMain.social;
         username = username.toLowerCase();
-        WinSomeUser u = s.getUser(username);
+        WinSomeUser u = social.getUser(username);
 
         if(u != null) {
             if(ServerMain.sessionsList.get(username) != null) {
@@ -353,17 +358,16 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
-        Set<String> current_user_tags = s.getUser(current_user).getTags_list();
+        Set<String> current_user_tags = social.getUser(current_user).getTags_list();
         if(current_user_tags.size() == 0) {
             Utils.send(out, "non hai tag impostati, quindi non ci sono utenti con tag in comune con te");
             return;
         }
 
         // ottengo gli utenti con almeno un tag uguale e rimuovo me stesso
-        ArrayList<WinSomeUser> usersWithTag = s.getUsersWithSimilarTags(current_user_tags);
+        ArrayList<WinSomeUser> usersWithTag = social.getUsersWithSimilarTags(current_user_tags);
         usersWithTag.removeIf(u -> Objects.equals(u.getUsername(), current_user));
         if(usersWithTag.size() == 0) { // se dopo la rimozione ci sono 0 utenti allora restituisco questo errore
             Utils.send(out, "nessun utente ha almeno un tag in comune con te :(");
@@ -393,9 +397,8 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
 
-        ArrayList<String> following = s.getFollowing(clientSession.getUsername());
+        ArrayList<String> following = social.getFollowing(clientSession.getUsername());
         if(following.size() == 0) {
             Utils.send(out, "non segui alcun utente");
             return;
@@ -419,12 +422,12 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         username = username.toLowerCase();
         String current_user = clientSession.getUsername();
 
         try {
-            s.followUser(current_user, username);
+            social.followUser(current_user, username);
             Utils.send(out, "ora segui '" + username + "'");
             try {
                 WinSomeCallback.notifyFollowerUpdate(username, "+" + current_user);
@@ -450,12 +453,12 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         username = username.toLowerCase();
         String current_user = clientSession.getUsername();
 
         try {
-            s.unfollowUser(current_user, username);
+            social.unfollowUser(current_user, username);
             Utils.send(out, "non segui piu' '" + username + "'");
             try {
                 WinSomeCallback.notifyFollowerUpdate(username, "-" + current_user);
@@ -482,7 +485,6 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
         String post_title = arguments_list.get(0).trim();
@@ -491,7 +493,7 @@ public class ConnectionHandler implements Runnable {
         if(arguments_list.size() >= 2) post_content = arguments_list.get(1).trim();
 
         try {
-            int new_post_id = s.createPost(current_user, post_title, post_content);
+            int new_post_id = social.createPost(current_user, post_title, post_content);
             Utils.send(out, "post pubblicato (#" + new_post_id + ")");
         } catch(InvalidOperationException e) {
             Utils.send(out, "titolo o contenuto del post troppo lungo");
@@ -509,17 +511,16 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
         String current_user = clientSession.getUsername();
 
-        ArrayList<WinSomePost> user_posts = s.getBlog(current_user);
+        ArrayList<WinSomePost> user_posts = social.getBlog(current_user);
         if(user_posts.size() == 0) {
             Utils.send(out, "il tuo blog e' vuoto, pubblica qualcosa!");
             return;
         }
         StringBuilder ret = new StringBuilder("BLOG DI " + current_user + ":\n");
         for(WinSomePost p : user_posts) {
-            ret.append(s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
+            ret.append(social.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
         }
         Utils.send(out, ret.toString());
     }
@@ -534,11 +535,11 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         String current_user = clientSession.getUsername();
 
         try {
-            s.rewinPost(current_user, post_id);
+            social.rewinPost(current_user, post_id);
             Utils.send(out, "rewin del post #" + post_id + " effettuato!");
         } catch(InvalidOperationException e) {
             Utils.send(out, "hai gia' fatto il rewin di questo post");
@@ -566,11 +567,11 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         String current_user = clientSession.getUsername();
 
         try {
-            s.ratePost(current_user, post_id, vote);
+            social.ratePost(current_user, post_id, vote);
             if(vote == 1) {
                 Utils.send(out, "hai messo +1 al post #" + post_id);
             } else {
@@ -601,10 +602,10 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         String current_user = clientSession.getUsername();
 
-        ArrayList<WinSomePost> feed = s.getFeed(current_user);
+        ArrayList<WinSomePost> feed = social.getFeed(current_user);
         if(feed.size() == 0) {
             Utils.send(out, "feed vuoto");
             return;
@@ -613,7 +614,7 @@ public class ConnectionHandler implements Runnable {
         StringBuilder output = new StringBuilder();
         output.append("FEED DI ").append(current_user.toUpperCase()).append(":\n");
         for(WinSomePost p : feed) {
-            output.append(s.getPostFormatted(p.getPostID(), false, false, true, false, false, false));
+            output.append(social.getPostFormatted(p.getPostID(), false, false, true, false, false, false));
         }
         Utils.send(out, output.toString());
     }
@@ -627,14 +628,14 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
-        WinSomePost p = s.getPost(post_id);
+        
+        WinSomePost p = social.getPost(post_id);
 
         if(p == null) {
             Utils.send(out, "impossibile trovare post con id #" + post_id);
             return;
         }
-        Utils.send(out, s.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
+        Utils.send(out, social.getPostFormatted(p.getPostID(), true, true, true, true, true, true));
     }
 
     /**
@@ -648,11 +649,11 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         String current_user = clientSession.getUsername();
 
         try {
-            s.commentPost(current_user, post_id, text);
+            social.commentPost(current_user, post_id, text);
             Utils.send(out, "commento pubblicato");
         } catch(PostNotFoundException e) {
             Utils.send(out, "impossibile trovare post con id #" + post_id);
@@ -673,11 +674,11 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
+        
         String current_user = clientSession.getUsername();
 
         try {
-            s.deletePost(current_user, post_id);
+            social.deletePost(current_user, post_id);
             Utils.send(out, "post #" + post_id + " eliminato");
         } catch(PostNotFoundException e) {
             Utils.send(out, "impossibile trovare post con id #" + post_id);
@@ -696,25 +697,24 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
-        ConfigManager c = ServerMain.config;
-        int precision = Integer.parseInt(c.getPreference("currency_decimal_places"));
+        
+        int precision = Integer.parseInt(config.getPreference("currency_decimal_places"));
         String current_user = clientSession.getUsername();
 
-        WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
+        WinSomeWallet user_wallet = social.getWalletByUsername(current_user);
         ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
 
         StringBuilder output = new StringBuilder("WALLET DI " + current_user + ":\n");
         double money;
-        output.append("Bilancio: ").append(s.getFormattedCurrency(user_wallet.getBalance()));
+        output.append("Bilancio: ").append(social.getFormattedCurrency(user_wallet.getBalance()));
         output.append("\n");
         if(user_transactions.size() != 0) {
             output.append("TRANSAZIONI:\n");
             for(WinSomeTransaction t : user_transactions) {
                 output.append("* ");
                 money = t.getEdit();
-                if(money >= 0) output.append("+").append(s.getFormattedCurrency(money));
-                else output.append(s.getFormattedCurrency(money));
+                if(money >= 0) output.append("+").append(social.getFormattedCurrency(money));
+                else output.append(social.getFormattedCurrency(money));
                 output.append(" | Motivo: ").append(t.getReason());
                 output.append(" | Data: ").append(getFormattedDate(t.getDate())).append("\n");
             }
@@ -732,12 +732,10 @@ public class ConnectionHandler implements Runnable {
             Utils.send(out, "non hai effettuato il login");
             return;
         }
-        SocialManager s = ServerMain.social;
-        ConfigManager c = ServerMain.config;
-        int precision = Integer.parseInt(c.getPreference("currency_decimal_places"));
+        int precision = Integer.parseInt(config.getPreference("currency_decimal_places"));
         String current_user = clientSession.getUsername();
 
-        WinSomeWallet user_wallet = s.getWalletByUsername(current_user);
+        WinSomeWallet user_wallet = social.getWalletByUsername(current_user);
         ConcurrentLinkedQueue<WinSomeTransaction> user_transactions = user_wallet.getTransactions();
 
         long calcTimeStart = System.currentTimeMillis();
@@ -747,10 +745,10 @@ public class ConnectionHandler implements Runnable {
         double moneyInBitcoin = money * conversionRate;
 
         String output = "WALLET DI " + current_user + ":\n";
-        output += "Bilancio: " + s.getFormattedCurrency(user_wallet.getBalance());
+        output += "Bilancio: " + social.getFormattedCurrency(user_wallet.getBalance());
         output += "\n";
-        output += "Tasso di conversione: " + s.getFormattedValue(conversionRate) + " (aggiornato al " + getFormattedDate(calcTimeStart) + ")\n";
-        output += "Bilancio in Bitcoin: " + s.getFormattedValue(moneyInBitcoin) + "\n";
+        output += "Tasso di conversione: " + social.getFormattedValue(conversionRate) + " (aggiornato al " + getFormattedDate(calcTimeStart) + ")\n";
+        output += "Bilancio in Bitcoin: " + social.getFormattedValue(moneyInBitcoin) + "\n";
 
         Utils.send(out, output);
     }
