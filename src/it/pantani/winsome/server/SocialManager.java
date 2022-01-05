@@ -639,7 +639,7 @@ public class SocialManager {
             throw new ConfigurationException("valore 'post_max_title_length' non valido (" + e.getLocalizedMessage() + ")");
         }
         if(post_max_title_length <= 0) {
-            throw new ConfigurationException("valore 'post_max_title_length' non valido (" + post_max_title_length + " dovrebbe essere compreso maggiore di 0)");
+            throw new ConfigurationException("valore 'post_max_title_length' non valido (" + post_max_title_length + " dovrebbe essere maggiore di 0)");
         }
 
         // controllo numero lunghezza massima contenuto/corpo di un post
@@ -649,7 +649,7 @@ public class SocialManager {
             throw new ConfigurationException("valore 'post_max_content_length' non valido (" + e.getLocalizedMessage() + ")");
         }
         if(post_max_content_length <= 0) {
-            throw new ConfigurationException("valore 'post_max_content_length' non valido (" + post_max_content_length + " dovrebbe essere compreso maggiore di 0)");
+            throw new ConfigurationException("valore 'post_max_content_length' non valido (" + post_max_content_length + " dovrebbe essere maggiore di 0)");
         }
     }
 }

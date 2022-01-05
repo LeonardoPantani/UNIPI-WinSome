@@ -56,6 +56,7 @@ public class ConfigManager {
                 prop.setProperty("percentage_reward_author", "70"); // percentuale del premio di un post dell'autore
                 prop.setProperty("percentage_reward_curator", "30"); // percentuale del premio di un post del curatore
                 prop.setProperty("rewards_check_timeout", "15000"); // tempo che il RewardsManager dovrà attendere ogni volta che fa un controllo prima di farne un altro
+                prop.setProperty("max_timeout_pool_shutdown", "30000"); // tempo (in millisecondi) che il main attenderà prima di chiudere forzatamente la pool di thread ConnectionHandler
                 prop.setProperty("last_rewards_check", "0"); // [da non modificare] data UNIX dell'ultimo controllo del RewardsManager
                 prop.setProperty("last_post_id", "0"); // [da non modificare] contatore dell'ultimo post di WinSome
             } else {

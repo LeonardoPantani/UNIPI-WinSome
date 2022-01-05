@@ -53,6 +53,7 @@ public class ServerMain {
     private static String rmi_server_registry_name;
     private static int rmi_callback_client_port;
     private static String rmi_callback_client_registry_name;
+    private static int max_timeout_pool_shutdown;
 
     public static void main(String[] args) {
         // leggo il file di configurazione (o lo creo se non esiste)
@@ -213,7 +214,7 @@ public class ServerMain {
         // chiusura pool
         pool.shutdown();
         try {
-            if (!pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS)) {
+            if (!pool.awaitTermination(max_timeout_pool_shutdown, TimeUnit.MILLISECONDS)) {
                 pool.shutdownNow();
             }
         } catch(InterruptedException e) {
@@ -285,6 +286,16 @@ public class ServerMain {
         rmi_callback_client_registry_name = config.getPreference("rmi_callback_client_registry_name");
         if (rmi_callback_client_registry_name == null) {
             throw new ConfigurationException("valore 'rmi_callback_client_registry_name' non valido (non e' presente nel file di configurazione)");
+        }
+
+        // controllo che il numero di millisecondi da attendere prima della chiusura della pool non sia invalido
+        try {
+            max_timeout_pool_shutdown = Integer.parseInt(config.getPreference("max_timeout_pool_shutdown"));
+        } catch(NumberFormatException e) {
+            throw new ConfigurationException("valore 'max_timeout_pool_shutdown' non valido (" + e.getLocalizedMessage() + ")");
+        }
+        if (max_timeout_pool_shutdown <= 0) {
+            throw new ConfigurationException("valore 'max_timeout_pool_shutdown' non valido (" + max_timeout_pool_shutdown + " dovrebbe essere maggiore di 0)");
         }
     }
 }
