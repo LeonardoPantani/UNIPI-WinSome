@@ -21,6 +21,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -148,13 +149,21 @@ public class ClientMain {
                     if(reqFailed) {
                         System.out.print(raw_request);
                         reader.nextLine();
+                        // se la richiesta è fallita in precedenza devo fare l'unexport dell'oggetto se era già istanziato
+                        // se non ci fosse questo controllo, il client non terminerebbe correttamente
+                        if(callbackobj != null) {
+                            try {
+                                UnicastRemoteObject.unexportObject(callbackobj, false);
+                            } catch(NoSuchObjectException ignored) { }
+                        }
                         reqFailed = false;
                     } else {
+                        // se l'ultima richiesta non è fallita semplicemente ricevo il comando dall'utente
+                        // se il comando è vuoto lo ignoro
                         raw_request = "";
                         try {
                             raw_request = reader.nextLine();
                         } catch(NoSuchElementException ignored) {} // per evitare errore se si preme CTRL+C su Windows
-
                         if(raw_request.equals("")) continue;
                     }
                     String[] temp = raw_request.split(" ");

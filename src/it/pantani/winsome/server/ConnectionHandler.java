@@ -272,7 +272,11 @@ public class ConnectionHandler implements Runnable {
 
         // se esco dal while vuol dire che la connessione è terminata (con una IOException)
         ServerMain.socketsList.remove(clientSocket); // rimuovo il socket del client dalla lista
-        if(clientSession != null) ServerMain.sessionsList.remove(clientSession.getUsername()); // se l'utente era loggato, ne rimuovo la sessione
+        if(clientSession != null) {
+            ServerMain.sessionsList.remove(clientSession.getUsername()); // se l'utente era loggato, ne rimuovo la sessione
+            WinSomeCallback.forceRemoveClientFromCallback(clientSession.getUsername()); // rimuovo l'utente dalla lista callback RMI
+        }
+
         System.out.println("[CH #" + chCode + "]> Collegamento col client " + clientSocket.getInetAddress() + ":" + clientSocket.getPort() + " terminato.");
     }
 

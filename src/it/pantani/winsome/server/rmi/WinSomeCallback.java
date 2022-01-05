@@ -54,4 +54,12 @@ public class WinSomeCallback extends RemoteObject implements WinSomeCallbackInte
            clients.get(username).notificationEvent(change);
         }
     }
+
+    /**
+     * Permette di rimuovere forzatamente un utente dalla lista callback.
+     * @param logged_username l'utente loggato sul client da rimuovere dalla lista callback
+     */
+    public static void forceRemoveClientFromCallback(String logged_username) {
+        clients.remove(logged_username);
+    }
 }
