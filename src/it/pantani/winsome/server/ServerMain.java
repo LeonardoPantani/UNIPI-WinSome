@@ -105,7 +105,7 @@ public class ServerMain {
         // gestisce tutta la parte di comandi inviati dall'amministratore del server per vederne lo stato
         InputHandler ih;
         try {
-            ih = new InputHandler(config, social);
+            ih = new InputHandler(config, social, pool);
         } catch(ConfigurationException e) {
             System.err.println("[!] Inizializzazione fallita. Motivo: " + e.getLocalizedMessage());
             return;

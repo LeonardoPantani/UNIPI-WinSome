@@ -8,6 +8,7 @@ package it.pantani.winsome.server;
 
 import it.pantani.winsome.server.entities.WinSomeSession;
 import it.pantani.winsome.server.entities.WinSomeUser;
+import it.pantani.winsome.server.entities.WinSomeWallet;
 import it.pantani.winsome.server.rmi.WinSomeCallback;
 import it.pantani.winsome.shared.ConfigManager;
 import it.pantani.winsome.shared.Utils;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static it.pantani.winsome.shared.Utils.getFormattedDate;
 
@@ -27,14 +29,16 @@ import static it.pantani.winsome.shared.Utils.getFormattedDate;
 public class InputHandler implements Runnable {
     private final ConfigManager config;
     private final SocialManager social;
+    private final ThreadPoolExecutor pool;
 
     private volatile boolean stop;
 
     String default_reason_transaction;
 
-    public InputHandler(ConfigManager config, SocialManager social) throws ConfigurationException {
+    public InputHandler(ConfigManager config, SocialManager social, ThreadPoolExecutor pool) throws ConfigurationException {
         this.config = config;
         this.social = social;
+        this.pool = pool;
         stop = false;
 
         validateAndSavePreferences();
@@ -153,6 +157,10 @@ public class InputHandler implements Runnable {
                     } catch(NumberFormatException e) {
                         System.err.println("[!] Argomento non valido: changebal <username> <cambiamento>");
                     }
+                    break;
+                }
+                case "stats": { // mostra alcune statistiche del server
+                    stats();
                     break;
                 }
                 case "help": { // mostra una lista di comandi
@@ -327,6 +335,23 @@ public class InputHandler implements Runnable {
         System.out.println("> L'utente '" + user + "' ha ora un bilancio di " + social.getFormattedCurrency(newBalance));
     }
 
+    private void stats() {
+        int mb = 1024 * 1024;
+        Runtime instance = Runtime.getRuntime();
+
+        System.out.println("===============[Statistiche Social & Threads]===============");
+        System.out.println("Utenti registrati: " + social.getUserCount());
+        System.out.println("Utente col maggior numero di wincoin: " + getRicherUser());
+        System.out.println("Socket attualmente in uso: " + ServerMain.socketsList.size());
+        System.out.println("Numero di thread schedulati: " + pool.getTaskCount() + " (stima)");
+        System.out.println("Numero di thread in attivita': " + pool.getActiveCount() + " (stima)");
+        System.out.println("Numero di thread completati: " + pool.getCompletedTaskCount() + " (stima)");
+        System.out.println("Numero attuale di thread nel pool: " + pool.getPoolSize());
+        System.out.println("Numero massimo raggiunto di thread attivi contemporaneamente: " + pool.getLargestPoolSize());
+        System.out.println("==============[Statistiche memoria heap in MB]==============");
+        System.out.println(((instance.totalMemory() - instance.freeMemory()) / mb) + " in uso su " + (instance.totalMemory() / mb) + " totali | " + instance.maxMemory() / mb + " totali JVM");
+    }
+
     private void stopServer(Scanner in) {
         String check = "";
 
@@ -358,12 +383,29 @@ public class InputHandler implements Runnable {
         System.out.println("addfollowing <utente> <nuovo>        - Fa seguire a <utente> l'utente <nuovo>");
         System.out.println("removefollowing <utente> <following> - Fa smettere a <utente> di seguire l'utente <following>");
         System.out.println("changebal <utente> <cambiamento>     - Aggiunge una transazione di <cambiamento> " + config.getPreference("currency_name_plural") + " a <utente>");
+        System.out.println("stats                                - Mostra alcune statistiche riguardo il server");
         System.out.println("stopserver                           - Termina il server");
         System.out.println("help                                 - Mostra questa schermata");
     }
 
     private void unknownCommand() {
         System.out.println("> Comando sconosciuto, scrivi 'help' per una lista di comandi.");
+    }
+
+    private String getRicherUser() {
+        String username = "";
+        double max_balance = 0;
+
+        double temp;
+        for(Map.Entry<String, WinSomeWallet> entry : social.getWalletList().entrySet()) {
+            temp = entry.getValue().getBalance();
+            if(temp >= max_balance) {
+                username = entry.getKey();
+                max_balance = temp;
+            }
+        }
+
+        return username + " (" + social.getFormattedCurrency(max_balance) + ")";
     }
 
     /**
