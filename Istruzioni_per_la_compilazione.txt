@@ -1,0 +1,23 @@
+==============UNIX===============
+CLIENT
+> mkdir buildClient
+> find src/it/pantani/winsome/client src/it/pantani/winsome/shared -name "*.java" > sourcesClient.txt
+> javac -d ./buildClient/ @sourcesClient.txt
+> cd buildClient
+> jar cfe ../ClientWinSome.jar it.pantani.winsome.client.ClientMain *
+> cd ..
+
+# per eseguire
+> java -jar ClientWinSome.jar
+=================================
+SERVER
+> mkdir buildServer
+> find src/it/pantani/winsome/server src/it/pantani/winsome/shared -name "*.java" > sourcesServer.txt
+> javac -cp "src/it/pantani/winsome/libs/gson-2.8.9.jar:src/it/pantani/winsome/libs/spring-security-crypto-5.4.7.jar" -d ./buildServer/ @sourcesServer.txt
+> cd buildServer
+> jar mcfe ../src/it/pantani/winsome/shared/server-manifest/META-INF/manifest.txt ../ServerWinSome.jar it.pantani.winsome.server.ServerMain *
+> cd ..
+
+# per eseguire
+> java -jar ServerWinSome.jar
+=================================
