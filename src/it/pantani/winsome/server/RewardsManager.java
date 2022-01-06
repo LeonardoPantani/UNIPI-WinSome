@@ -254,9 +254,6 @@ public class RewardsManager implements Runnable {
         } catch(NumberFormatException e) {
             throw new ConfigurationException("valore 'percentage_reward_curator' non valido (" + e.getLocalizedMessage() + ")");
         }
-        if(percentage_reward_author + percentage_reward_curator != 100) {
-            throw new ConfigurationException("valore 'percentage_reward_curator' non valido (la somma delle percentuali percentage_reward_author e percentage_reward_curator non raggiunge 100)");
-        }
 
         // controllo causali delle transazioni relative ai premi dei post
         author_reward_reason = config.getPreference("author_reward_reason_transaction");

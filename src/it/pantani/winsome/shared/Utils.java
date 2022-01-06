@@ -14,6 +14,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Locale;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 /**
  * Classe utilizzata sia da client che server perché contiene utili funzioni che permettono il funzionamento di WinSome.
@@ -63,6 +65,22 @@ public abstract class Utils {
             i++;
         }
         return everything.toString();
+    }
+
+    /**
+     * Permette di leggere una stringa da console. A differenza del readLine() normale, gestisce il caso della
+     * NoSuchElementException che si verifica se il programma termina mentre si è in attesa di leggere un input.
+     * @param reader istanza del lettore
+     * @return la stringa letta
+     */
+    public static String readFromConsole(Scanner reader) {
+        String input = "";
+
+        try {
+            input = reader.nextLine();
+        } catch(NoSuchElementException ignored) {} // per evitare errore se si preme CTRL+C su Windows
+
+        return input;
     }
 
     /**

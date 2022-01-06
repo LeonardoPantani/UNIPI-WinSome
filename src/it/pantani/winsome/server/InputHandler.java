@@ -48,14 +48,11 @@ public class InputHandler implements Runnable {
      * Processo che viene eseguito all'avvio del server che aspetta l'input dell'utente.
      */
     public void run() {
-        Scanner in = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in);
         String raw_request;
 
         while(!stop) {
-            raw_request = "";
-            try {
-                raw_request = in.nextLine();
-            } catch(NoSuchElementException ignored) { }  // per evitare errore se si preme CTRL+C su Windows
+            raw_request = Utils.readFromConsole(reader);
 
             if(raw_request.equals("")) continue; // se l'utente ha premuto invio continuo
             String[] temp = raw_request.split(" ");
@@ -111,7 +108,7 @@ public class InputHandler implements Runnable {
                     break;
                 }
                 case "stopserver": { // ferma il server (è l'unico modo che c'è perché i dati vengano salvati!)
-                    stopServer(in);
+                    stopServer(reader);
                     break;
                 }
                 case "addfollower": { // aggiunge un follower (può anche non esistere)
@@ -352,15 +349,10 @@ public class InputHandler implements Runnable {
         System.out.println(((instance.totalMemory() - instance.freeMemory()) / mb) + " in uso su " + (instance.totalMemory() / mb) + " totali | " + instance.maxMemory() / mb + " totali JVM");
     }
 
-    private void stopServer(Scanner in) {
-        String check = "";
-
+    private void stopServer(Scanner reader) {
         System.out.print("> Sei sicuro di voler terminare il server? (S/N): ");
-        try {
-            check = in.nextLine();
-        } catch(NoSuchElementException ignored) { }  // per evitare errore se si preme CTRL+C su Windows
 
-        if(check.equalsIgnoreCase("S")) {
+        if(Utils.readFromConsole(reader).equalsIgnoreCase("S")) { // se si risponde "S"
             System.out.println("> Server in arresto...");
             stop = true;
             try {

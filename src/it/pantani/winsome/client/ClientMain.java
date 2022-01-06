@@ -29,7 +29,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -114,7 +113,7 @@ public class ClientMain {
                 socket = new Socket(server_address, server_port);
             } catch(IOException e) {
                 System.err.print("[!] Impossibile connettersi al server. Riprovare a collegarsi? (S/N): ");
-                if(reader.nextLine().equalsIgnoreCase("S")) {
+                if(Utils.readFromConsole(reader).equalsIgnoreCase("S")) {
                     continue;
                 } else {
                     connLost = true;
@@ -148,7 +147,7 @@ public class ClientMain {
                     // in questo modo l'ultima richiesta è ricopiata per evitare che debba essere richiesta (solo per register e login)
                     if(reqFailed) {
                         System.out.print(raw_request);
-                        reader.nextLine();
+                        Utils.readFromConsole(reader); // ignoro eventuale input dell'utente, esso dovrà premere INVIO
                         // se la richiesta è fallita in precedenza devo fare l'unexport dell'oggetto se era già istanziato
                         // se non ci fosse questo controllo, il client non terminerebbe correttamente
                         if(callbackobj != null) {
@@ -160,10 +159,7 @@ public class ClientMain {
                     } else {
                         // se l'ultima richiesta non è fallita semplicemente ricevo il comando dall'utente
                         // se il comando è vuoto lo ignoro
-                        raw_request = "";
-                        try {
-                            raw_request = reader.nextLine();
-                        } catch(NoSuchElementException ignored) {} // per evitare errore se si preme CTRL+C su Windows
+                        raw_request = Utils.readFromConsole(reader);
                         if(raw_request.equals("")) continue;
                     }
                     String[] temp = raw_request.split(" ");
@@ -286,8 +282,8 @@ public class ClientMain {
             } catch (IOException e) {
                 // se si verifica un errore IO probabilmente il server è stato spento oppure ha avuto un errore
                 System.err.print("[!] Connessione al server perduta. Riprovare a collegarsi? (S/N): ");
-                if(!reader.nextLine().equalsIgnoreCase("S")) {
-                    connLost = true;
+                if(!Utils.readFromConsole(reader).equalsIgnoreCase("S")) { // se non è uguale a S
+                    connLost = true; // per entrare nell'if sotto (fuori dal while)
                     break;
                 } else {
                     // se il collegamento fallisce e stavamo facendo register o login, al prossimo collegamento riapparirà la query dell'utente senza che quest'ultimo debba riscriverla
@@ -315,6 +311,7 @@ public class ClientMain {
         wum.stopExecution();
         System.out.println("> Client terminato.");
     }
+
 
     /**
      * Verifica che le preferenze specificate nel file di configurazione siano corrette facendo vari controlli. Se
