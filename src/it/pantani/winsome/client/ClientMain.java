@@ -254,6 +254,28 @@ public class ClientMain {
                             System.out.print("\n");
                             break;
                         }
+                        case "help": { // mostra una lista dei comandi disponibili del client
+                            System.out.println("> LISTA COMANDI:");
+                            System.out.println("login <username> <password>        - Effettua il login al social WinSome");
+                            System.out.println("logout                             - Effettua il logout dal social WinSome");
+                            System.out.println("listfollowers                      - Mostra una lista dei propri followers");
+                            System.out.println("listusers                          - Mostra utenti con almeno un tag in comune");
+                            System.out.println("listfollowing                      - Mostra una lista degli utenti che si segue");
+                            System.out.println("blog                               - Mostra tutti post nel proprio blog");
+                            System.out.println("showfeed                           - Mostra tutti i post nel tuo feed");
+                            System.out.println("wallet                             - Mostra il tuo bilancio e transazioni");
+                            System.out.println("walletbtc                          - Mostra il tuo bilancio in Bitcoin");
+                            System.out.println("follow <utente>                    - Fa seguire un utente");
+                            System.out.println("unfollow <utente>                  - Fa smettere di seguire un utente");
+                            System.out.println("rewin <id post>                    - Effettua il rewin di un post");
+                            System.out.println("post \"<titolo>\" \"<contenuto>\"      - Crea un post");
+                            System.out.println("rate <id post> <+1/-1>             - Valuta un post nel proprio feed");
+                            System.out.println("showpost <id post>                 - Mostra un post");
+                            System.out.println("comment <id post> <testo>          - Commenta un post nel proprio feed");
+                            System.out.println("delete <id post>                   - Elimina un proprio post");
+                            System.out.println("help                               - Mostra questa schermata");
+                            break;
+                        }
                         // insieme di operazioni senza controlli sugli argomenti
                         case "listusers":
                         case "listfollowing":
